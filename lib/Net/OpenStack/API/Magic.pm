@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use Module::Load;
-use Net::OpenStack::Client::Request qw(parse_endpoint @SUPPORTED_METHODS);
+use Net::OpenStack::Client::Request qw(@SUPPORTED_METHODS @METHODS_REQUIRE_OPTIONS);
 
 use Readonly;
 
@@ -100,44 +100,34 @@ sub retrieve
         return {}, "$err_prefix no API data";
     }
 
-    # data is an arrayref
-    # first element is method (GET/PUT/...)
-    # 2nd element is endpoint URL -> command endpoint
-    #    all template variables ({name}) to the command
-    # remainder are options for JSON data
-    #    start with '?' : optional -> required attr
-    #    end with %type : type to use (for conversion) -> type attr
-    my @data = @$data;
-
-    if (scalar(@data) < 2) {
-        return {}, "$err_prefix data should at least contain the method and URL, got @data";
+    # data is a hashref
+    # sanity check
+    if (!exists($data->{endpoint})) {
+        return {}, "$err_prefix data should at least contain the endpoint";
     }
 
-    my $method = shift @data;
+    if (!exists($data->{method})) {
+        return {}, "$err_prefix data should at least contain the method";
+    }
+
+    my $method = $data->{method};
     if (!grep {$_ eq $method} @SUPPORTED_METHODS) {
         return {}, "$err_prefix method $method is not supported";
     }
+    if ((grep {$method eq $_} @METHODS_REQUIRE_OPTIONS) && !exists($data->{options})) {
+        return {}, "$err_prefix data should contain options for method $method";
+    }
 
-    my $endpoint = shift @data;
     my $result = {
         name => $name, # human readable function/method name
         method => $method, # HTTP method
         service => $service,
-        endpoint => $endpoint,
-        templates => parse_endpoint($endpoint),
+        endpoint => $data->{endpoint},
     };
 
-    my @opts;
-    foreach my $attr (@data) {
-        if ($attr =~ m/^([?])?(.*?)(?:%(\w+))?$/) {
-            push(@opts, {
-                name => $2,
-                required => defined($1) ? 0 : 1,
-                type => $3 || 'str', # default string type
-            });
-        }
-    };
-    $result->{options} = \@opts if @opts;
+    foreach my $k (qw(templates options)) {
+        $result->{$k} = $data->{$k} if exists($data->{$k});
+    }
 
     return cache($result), undef;
 }

@@ -21,7 +21,7 @@ use lib "$Bin/testapi";
     sub rpc
     {
         my ($self, $req) = @_;
-        # dummy rpc call, do nothing, just wrap teh request in simple hashref and return it
+        # dummy rpc call, do nothing, just wrap the request in simple hashref and return it
         return {req => $req};
     }
 
@@ -35,10 +35,12 @@ isa_ok($resp->{req}, 'Net::OpenStack::Client::Request',
 like($resp->{req}->{error},
      qr{endpoint template user name user mandatory},
      "used request missing templates");
+
 $resp = $client->api_theservice_humanreadable(user => 'auser');
 like($resp->{req}->{error},
      qr{option int name int mandatory},
      "used request missing mandatory options");
+
 $resp = $client->api_theservice_humanreadable(user => 'auser', int => 1, name => 'thename');
 my $req = $resp->{req};
 ok($req, "returned response used request has no error");

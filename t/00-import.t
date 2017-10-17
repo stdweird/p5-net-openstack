@@ -3,6 +3,15 @@ use warnings;
 
 use Test::More;
 
-use_ok("Net::OpenStack");
+my @mods = qw(
+    API::Convert API::Magic
+    Client::Request Client::Response Client::API
+);
+
+foreach my $mod (@mods) {
+    my $fmod = "Net::OpenStack::$mod";
+    use_ok($fmod);
+};
+
 
 done_testing;

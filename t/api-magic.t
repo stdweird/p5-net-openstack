@@ -43,14 +43,14 @@ is_deeply($c, {
     method => 'POST',
     endpoint => '/some/{user}/super',
     templates => [qw(user)],
-    options => [
-        { name => 'int', required => 1, type => 'int'},
-        { name => 'boolean', required => 0, type => 'bool'},
-        { name => 'name', required => 1, type => 'str'},
-    ],
+    options => {
+        'int' => {'type' => 'long','path' => ['something','int'], required => 1},
+        'boolean' => {'path' => ['something','boolean'],'type' => 'boolean'},
+        'name' => {'type' => 'string','path' => ['something','name']},
+    },
 }, 'theservice humanreadable retrieved');
 ok(! defined($err), "No error");
-#diag "retrieve ", explain $c;
+#diag "retrieve ", explain $c, " error ", explain $err;
 
 my $c2;
 ($c2, $err) = retrieve('theservice', 'humanreadable', 'v3.1');

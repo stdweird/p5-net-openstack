@@ -7,9 +7,10 @@ use base qw(Exporter);
 use Readonly;
 
 Readonly our @SUPPORTED_METHODS => qw(DELETE GET PATCH POST PUT);
+Readonly our @METHODS_REQUIRE_OPTIONS => qw(PATCH POST PUT);
 
 our @EXPORT = qw(mkrequest);
-our @EXPORT_OK = qw(parse_endpoint @SUPPORTED_METHODS);
+our @EXPORT_OK = qw(parse_endpoint @SUPPORTED_METHODS @METHODS_REQUIRE_OPTIONS);
 
 use overload bool => '_boolean';
 

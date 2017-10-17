@@ -17,12 +17,12 @@ isa_ok($r, 'Net::OpenStack::Client::Response', 'a Net::OpenStack::Client::Respon
 $r = mkresponse();
 isa_ok($r, 'Net::OpenStack::Client::Response', 'a Net::OpenStack::Client::Response instance created using mkrequest');
 
-isa_ok($r->{error}, 'Net::FreeIPA::Error', 'Error instance by default');
+isa_ok($r->{error}, 'Net::OpenStack::Client::Error', 'Error instance by default');
 ok(! $r->is_error(), 'is_error false');
 ok($r, 'overloaded boolean = true if no error via is_error');
 
 $r = mkresponse(error => 'abc');
-isa_ok($r->{error}, 'Net::FreeIPA::Error', 'error attribute set');
+isa_ok($r->{error}, 'Net::OpenStack::Client::Error', 'error attribute set');
 is("$r->{error}", "Error abc", "string as message");
 ok($r->is_error(), 'is_error true');
 ok(! $r, 'overloaded boolean = false on error via is_error');
@@ -33,21 +33,21 @@ ok(! $r, 'overloaded boolean = false on error via is_error');
 =cut
 
 my $e = $r->set_error();
-isa_ok($r->{error}, 'Net::FreeIPA::Error', 'error attribute set 2');
+isa_ok($r->{error}, 'Net::OpenStack::Client::Error', 'error attribute set 2');
 is("$r->{error}", "No error", "no error error message");
 ok(! $r->is_error(), 'is_error false');
 ok($r, 'overloaded boolean = true on error via is_error');
 
-isa_ok($e, 'Net::FreeIPA::Error', 'set_error returns error');
+isa_ok($e, 'Net::OpenStack::Client::Error', 'set_error returns error');
 is("$e", "No error", "no error error message for returned error");
 
 $e = $r->set_error({code => 100});
-isa_ok($r->{error}, 'Net::FreeIPA::Error', 'error attribute set 3');
+isa_ok($r->{error}, 'Net::OpenStack::Client::Error', 'error attribute set 3');
 is("$r->{error}", "Error 100", "code 100 error message");
 ok($r->is_error(), 'is_error true');
 ok(! $r, 'overloaded boolean = false on error via is_error');
 
-isa_ok($e, 'Net::FreeIPA::Error', 'set_error returns error');
+isa_ok($e, 'Net::OpenStack::Client::Error', 'set_error returns error');
 is("$e", "Error 100", "code 100 error message for returned error");
 
 =head2 set_result

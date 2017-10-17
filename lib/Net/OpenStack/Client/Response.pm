@@ -5,7 +5,7 @@ use warnings;
 
 use base qw(Exporter);
 
-use Net::FreeIPA::Error;
+use Net::OpenStack::Client::Error;
 
 our @EXPORT = qw(mkresponse);
 
@@ -17,7 +17,7 @@ Readonly my $RESULT_PATH => 'result/result';
 
 =head1 NAME
 
-Net::OpenStack::Client::Response is an response class for Net::FreeIPA.
+Net::OpenStack::Client::Response is an response class for Net::OpenStack.
 
 Boolean logic is overloaded using C<_boolean> method (as inverse of C<is_error>).
 

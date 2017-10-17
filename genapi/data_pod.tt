@@ -1,0 +1,36 @@
+
+=item [% name %]
+
+API method [% name %]
+
+[% details.description %]
+
+=over
+
+=item [% -%]
+[%- IF details.templates.defined -%]
+Required url / endpoint templates
+
+=over
+[%      FOREACH template IN details.templates %]
+=item [% template %]
+[%      END %]
+=back
+[% ELSE -%]
+No required url / endpoint templates
+[%- END %]
+
+=item Options
+
+=over
+[%      FOREACH opt IN details.options.pairs %]
+=item [% opt.key %]: [% opt.value.islist ? 'arrayref of ' : '' %][% opt.value.type %] (JSON path: [% opt.value.path.join(' -> ') %])
+[%      END -%]
+
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::RPC::rpc>.
+
+=back
+
+=back
+
+=cut

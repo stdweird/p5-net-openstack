@@ -1,0 +1,100 @@
+=pod
+
+=head2 Generated API service Identity version v3
+
+=over
+
+=cut
+
+
+
+=item add_domain
+
+API method add_domain
+
+Add domain
+
+=over
+
+=item No required url / endpoint templates
+
+=item Options
+
+=over
+
+=item description: string (JSON path: domain -> description)
+
+=item enabled: boolean (JSON path: domain -> enabled)
+
+=item name: string (JSON path: domain -> name)
+
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::RPC::rpc>.
+
+=back
+
+=back
+
+=cut
+
+
+
+=item domain
+
+API method domain
+
+Show domain details
+
+=over
+
+=item Required url / endpoint templates
+
+=over
+
+=item domain_id
+
+=back
+
+
+=item Options
+
+=over
+
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::RPC::rpc>.
+
+=back
+
+=back
+
+=cut
+
+
+
+=item domains
+
+API method domains
+
+List domains
+
+=over
+
+=item No required url / endpoint templates
+
+=item Options
+
+=over
+
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::RPC::rpc>.
+
+=back
+
+=back
+
+=cut
+
+
+
+=pod
+
+=back
+
+=cut

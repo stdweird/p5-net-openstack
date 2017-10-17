@@ -15,10 +15,10 @@ our @EXPORT_OK = qw(process_args);
 
 # Convert dispatch table
 Readonly::Hash my %CONVERT_DISPATCH => {
-    str => sub {my $val = shift; return "$val";}, # stringify
-    int => sub {my $val = shift; return 0 + $val;}, # Force internal conversion to int
-    float => sub {my $val = shift; return 1.0 * $val;}, # Force internal conversion to float
-    bool => sub {my $val = shift; return $val ? JSON::XS::true : JSON::XS::false;},
+    string => sub {my $val = shift; return "$val";}, # stringify
+    long => sub {my $val = shift; return 0 + $val;}, # Force internal conversion to int/long
+    double => sub {my $val = shift; return 1.0 * $val;}, # Force internal conversion to float/double
+    boolean => sub {my $val = shift; return $val ? JSON::XS::true : JSON::XS::false;},
 };
 
 # Aliases for each dispatch
@@ -195,8 +195,9 @@ sub process_args
     # Check options
     # Process all options (for JSON data)
     # The processed options are removed from %origopts
-    foreach my $opt (@{$cmdhs->{options} || []}) {
-        my $name = $opt->{name};
+    foreach my $name (sort keys %{$cmdhs->{options} || {}}) {
+        my $opt = $cmdhs->{options}->{$name};
+        $opt->{name} = $name if ! exists($opt->{$name});
         $errmsg = check_option($opt, delete $origopts{$name}, $opts);
         return &$err_req("option $name") if $errmsg;
     }

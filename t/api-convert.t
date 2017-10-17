@@ -15,13 +15,13 @@ use Readonly;
 =cut
 
 my $data = {
-    int => 5,
-    float => 10.5,
-    str => 20,
-    bool_false => 0,
-    bool_true => 1,
-    bool_list => [1, 0, 1],
-    bool_hash => { a=>1, b=>0, c=>1},
+    long => 5,
+    double => 10.5,
+    string => 20,
+    boolean_false => 0,
+    boolean_true => 1,
+    boolean_list => [1, 0, 1],
+    boolean_hash => { a=>1, b=>0, c=>1},
     not_a_type => {a => 1},
 };
 
@@ -36,24 +36,24 @@ foreach my $key (keys %$data) {
 my $j = JSON::XS->new();
 $j->canonical(1); # sort the keys, to create reproducable results
 is($j->encode($new_data),
-   '{"bool_false":false,"bool_hash":{"a":true,"b":false,"c":true},"bool_list":[true,false,true],"bool_true":true,"float":10.5,"int":5,"not_a_type":{"a":1},"str":"20"}',
+   '{"boolean_false":false,"boolean_hash":{"a":true,"b":false,"c":true},"boolean_list":[true,false,true],"boolean_true":true,"double":10.5,"long":5,"not_a_type":{"a":1},"string":"20"}',
    "JSON string of converted data");
 
 my $value;
 local $@;
 eval {
-    $value = Net::OpenStack::API::Convert::convert('a', 'int');
+    $value = Net::OpenStack::API::Convert::convert('a', 'long');
 };
 
-like("$@", qr{^Argument "a" isn't numeric in addition}, "convert dies string->int");
-ok(! defined($value), "value undefined on died convert string->int");
+like("$@", qr{^Argument "a" isn't numeric in addition}, "convert dies string->long");
+ok(! defined($value), "value undefined on died convert string->long");
 
 eval {
-    $value = Net::OpenStack::API::Convert::convert('a', 'float');
+    $value = Net::OpenStack::API::Convert::convert('a', 'double');
 };
 
-like("$@", qr{^Argument "a" isn't numeric in multiplication}, "convert dies string->float");
-ok(! defined($value), "value undefined on died convert string->float");
+like("$@", qr{^Argument "a" isn't numeric in multiplication}, "convert dies string->double");
+ok(! defined($value), "value undefined on died convert string->double");
 
 =head2 check_command
 
@@ -83,15 +83,15 @@ ct({required => 1, name => 'abc'}, 1, '',
    1, 'name abc unknown where ref $', 'invalid where (only array and hash refs)');
 
 
-ct({required => 1, name => 'abc', type => 'int'}, 'a', [],
-   1, 'name abc where ref ARRAY died Argument "a" isn\'t numeric in addition', 'conversion died string->int');
+ct({required => 1, name => 'abc', type => 'long'}, 'a', [],
+   1, 'name abc where ref ARRAY died Argument "a" isn\'t numeric in addition', 'conversion died string->long');
 
 
-ct({required => 1, name => 'abc', type => 'bool'}, 1, [1],
-   0, '[1,true]', 'added non-multi bool to where list');
+ct({required => 1, name => 'abc', type => 'boolean'}, 1, [1],
+   0, '[1,true]', 'added boolean to where list');
 
-ct({required => 1, name => 'abc', type => 'bool'}, 1, {xyz => 2},
-   0, '{"abc":true,"xyz":2}', 'added non-multi bool to where hash');
+ct({required => 1, name => 'abc', type => 'boolean'}, 1, {xyz => 2},
+   0, '{"abc":true,"xyz":2}', 'added bool to where hash');
 
 =head2 process_args
 
@@ -122,11 +122,10 @@ my $cmdhs = {
     method => 'POST',
     endpoint => '/do_{user}_something',
     templates => [qw(user)],
-    options => [{
+    options => { test => {
         name => 'test',
-        type => 'int',
-        required => 0,
-    }]
+        type => 'long',
+    }},
 };
 
 pat(process_args($cmdhs),
@@ -134,11 +133,11 @@ pat(process_args($cmdhs),
     'endpoint template user name user mandatory with undefined value');
 
 # make version mandatory
-$cmdhs->{options}->[0]->{required} = 1;
+$cmdhs->{options}->{test}->{required} = 1;
 pat(process_args($cmdhs, user => 'auser'),
     'missing mandatory option',
     'option test name test mandatory with undefined value');
-$cmdhs->{options}->[0]->{required} = 0;
+$cmdhs->{options}->{test}->{required} = 0;
 
 pat(process_args($cmdhs, user => 'auser', test => 'a', abc => 10),
     'invalid option value conversion',
