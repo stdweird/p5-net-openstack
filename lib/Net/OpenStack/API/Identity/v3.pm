@@ -20,9 +20,9 @@ Readonly our %API_DATA => {
         endpoint => '/domains',
         
         options => {    
-            'description' => {'type' => 'string','path' => ['domain','description']},
+            'description' => {'path' => ['domain','description'],'type' => 'string'},
             'enabled' => {'path' => ['domain','enabled'],'type' => 'boolean'},
-            'name' => {'type' => 'string','path' => ['domain','name']},
+            'name' => {'path' => ['domain','name'],'type' => 'string'},
         },
     },
     
@@ -39,6 +39,18 @@ Readonly our %API_DATA => {
         endpoint => '/domains',
         
     
+    },
+    
+    tokens => {
+        method => 'POST',
+        endpoint => '/auth/tokens',
+        
+        options => {    
+            'domain_name' => {'path' => ['auth','identity','password','user','domain','name'],'type' => 'string'},
+            'methods' => {'islist' => 1,'path' => ['auth','identity','methods'],'type' => 'string'},
+            'password' => {'path' => ['auth','identity','password','user','password'],'type' => 'string'},
+            'user_name' => {'path' => ['auth','identity','password','user','name'],'type' => 'string'},
+        },
     },
 
 };

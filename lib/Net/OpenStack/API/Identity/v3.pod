@@ -93,6 +93,38 @@ List domains
 
 
 
+=item tokens
+
+API method tokens
+
+Password authentication with unscoped authorization
+
+=over
+
+=item No required url / endpoint templates
+
+=item Options
+
+=over
+
+=item domain_name: string (JSON path: auth -> identity -> password -> user -> domain -> name)
+
+=item methods: arrayref of string (JSON path: auth -> identity -> methods)
+
+=item password: string (JSON path: auth -> identity -> password -> user -> password)
+
+=item user_name: string (JSON path: auth -> identity -> password -> user -> name)
+
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::RPC::rpc>.
+
+=back
+
+=back
+
+=cut
+
+
+
 =pod
 
 =back

@@ -27,7 +27,7 @@ No required url / endpoint templates
 =item [% opt.key %]: [% opt.value.islist ? 'arrayref of ' : '' %][% opt.value.type %] (JSON path: [% opt.value.path.join(' -> ') %])
 [%      END -%]
 
-=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::RPC::rpc>.
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
 
 =back
 

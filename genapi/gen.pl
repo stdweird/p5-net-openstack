@@ -87,6 +87,7 @@ sub make_module
             # single line dumper
             my $d = Data::Dumper->new([@_]);
             $d->Indent(0);
+            $d->Sortkeys(1);
             my $txt = $d->Dump;
             $txt =~ s/^\$VAR\d+\s*=\s*//;
             $txt =~ s/;$//;

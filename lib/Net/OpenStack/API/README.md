@@ -20,7 +20,7 @@ TODO: If no version is set, use `CURRENT` from version API
       * looks for description/api data in API::<service>::<version>
     * process_args from API::Magic
       * preps request instance based on data and args
-      * executes and returns the request with rpc(request) call
+      * executes and returns the request with rest(request) call
 
 # TODO
 

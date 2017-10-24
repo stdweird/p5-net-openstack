@@ -5,7 +5,9 @@ use Test::More;
 
 my @mods = qw(
     API::Convert API::Magic
-    Client::Request Client::Response Client::API
+    Client::Request Client::Response
+    Client::API Client::REST Client::Base
+    Client
 );
 
 foreach my $mod (@mods) {

@@ -1,0 +1,213 @@
+package Net::OpenStack::Client::REST;
+
+use strict;
+use warnings;
+
+use Net::OpenStack::Client::Request qw(@METHODS_REQUIRE_OPTIONS $HDR_X_AUTH_TOKEN);
+use Net::OpenStack::Client::Response;
+use REST::Client;
+use LWP::UserAgent;
+use JSON::XS;
+
+
+# JSON::XS instance
+# sort the keys, to create reproducable results
+my $json = JSON::XS->new()->canonical(1);
+
+=head1 methods
+
+=over
+
+=cut
+
+sub _new_client
+{
+    my ($self) = @_;
+
+    my $browser = LWP::UserAgent->new();
+    # Temporary cookie_jar
+    $browser->cookie_jar( {} );
+
+    my $rc = REST::Client->new(
+        useragent => $browser,
+        );
+
+    $self->{rc} = $rc;
+}
+
+# Actual REST::Client call
+# Returns tuple repsonse, repsonse headers and error message.
+# Processes the repsonse code, including possible JSON decoding
+# Reports error and returns err (with repsonse undef)
+sub _call
+{
+    my ($self, $method, $url, @args) = @_;
+
+    my $err;
+    my $rc = $self->{rc};
+
+    # make the call
+    $rc->$method($url, @args);
+
+    my $code = $rc->responseCode();
+    my $content = $rc->responseContent();
+    my $rheaders = {map {$_ => $rc->responseHeader($_)} $rc->responseHeaders};
+
+    my $response;
+
+    if ($code == 200) {
+        my $type = $rheaders->{'Content-Type'} || 'RESPONSE_WO_CONTENT_TYPE_HEADER';
+        if ($type =~ qr{^application/json}i) {
+            $response = $json->decode($content);
+        } else {
+            $response = $content;
+        }
+        $self->debug("Successful REST $method type $type".($self->{debugapi} ? " content $content" : ""));
+    } else {
+        $err = "$method failed (url $url code $code)";
+        $content = '<undef>' if ! defined($content);
+        $self->error("REST $err: $content");
+    }
+
+    return $response, $rheaders, $err;
+}
+
+# Handle pagination: https://developer.openstack.org/api-guide/compute/paginated_collections.html
+# For any decoded reply, walk the tree
+#    look for <key>+<key>_links combos
+#    <key> should be a list (a collection)
+#    the <key>_links part should have a rel=next, href=newurl
+#       follow it, and merge the results with the original key list
+#    lets assume they are in the same relative path
+# Aaaargh who came up with this crap
+
+# Return array of paths that have to processed for paging
+# Each element is a tuple of path (as arrayref of subpaths)
+# and url to follow
+# Assumes that all responses can be retrieved from
+# and be joined using the same path in JSON
+# Only pass hashref as data.
+# TODO: support lookup of links in arrays?
+sub _page_paths
+{
+    my $data = shift;
+
+    my @paths;
+
+    foreach my $key (sort keys %$data) {
+        my $lkey = $key."_links";
+        my $ref = ref($data->{$key});
+        if (exists($data->{$lkey}) &&
+            $ref eq 'ARRAY' &&
+            ref($data->{$lkey}) eq 'ARRAY'
+            ) {
+            foreach my $link (@{$data->{$lkey}}) {
+                if (exists($link->{rel}) &&
+                    $link->{rel} eq 'next' &&
+                    exists($link->{href})) {
+                    # only first one
+                    push(@paths, [[$key], $link->{href}]);
+                    last;
+                }
+            }
+        } elsif ($ref eq 'HASH') {
+            foreach my $rpath_tuple (_page_paths($data->{$key})) {
+                # add current key to path element (i.e. the path is relative to $key)
+                unshift(@{$rpath_tuple->[0]}, $key);
+                push(@paths, $rpath_tuple);
+            }
+        }
+    }
+
+    return @paths;
+}
+
+# only hashrefs
+sub _page
+{
+    my ($self, $method, $response, $headers) = @_;
+
+    my $err;
+
+    my @paths = _page_paths($response);
+    foreach my $path_tuple (_page_paths($response)) {
+        # No body, this is GET only
+        # We only care about the response headers of the first batch
+        $self->debug("_page method $method url $path_tuple->[1]");
+        my ($tresponse, $trheaders, $terr) = $self->_call($method, $path_tuple->[1], $headers);
+        if ($terr) {
+            # no temp err here, a failure in the paged GET repsonse is a failure nonetheless
+            $err = $terr;
+            last;
+        } else {
+            my @path = @{$path_tuple->[0]};
+            # extend path of tresponse in path of response
+            my $rarray = $response;
+            foreach my $p (@path) {
+                $rarray = $rarray->{$p};
+                $tresponse = $tresponse->{$p};
+            }
+            push(@$rarray, @$tresponse);
+        };
+    }
+
+    return $response, $err;
+}
+
+=item rest
+
+Given a Request instance C<req>, perform this request
+All options are passed to the headers method.
+The token option is added if the token attribute exists and
+if not token option was already in the options.
+
+=cut
+
+sub rest
+{
+    my ($self, $req, %opts) = @_;
+
+    # methods that require options, must pass said option as body
+    # general call is $rc->$method($url, [body if options], $headers)
+
+    my $method = $req->{method};
+
+    # url
+    my $url = $req->endpoint();
+    my @args = ($url);
+
+    # body if needed
+    my $body;
+    if (grep {$method eq $_} @METHODS_REQUIRE_OPTIONS) {
+        my $data = $req->opts_data;
+        $body = $json->encode($data);
+        push(@args, $body);
+    }
+
+    # headers
+    $opts{token} = $self->{token} if (exists($self->{token}) && !exists $opts{token});
+    my $headers = $req->headers(%opts);
+    push(@args, $headers);
+
+    $self->debug("REST $method url $url, ".(defined $body ? '' : 'no ')."body, headers ".join(',', sort keys %$headers));
+    if ($self->{debugapi}) {
+        # might contain sensitive data, eg security token
+        my $headers_txt = join(',', map {"$_=$headers->{$_}"} sort keys %$headers);
+        $self->debug("REST $method full headers $headers_txt");
+        $self->debug("REST $method full body $body") if $body;
+    }
+
+    my ($response, $rheaders, $err) = $self->_call($method, @args);
+    ($response, $err) = $self->_page($method, $response, $headers) if ($response && ref($response) eq 'HASH');
+
+    # The err here could be a failure in the paged GET repsonse
+    return mkresponse(data => $response, headers => $rheaders, error => $err);
+}
+
+=pod
+
+=back
+
+=cut
+
+1;

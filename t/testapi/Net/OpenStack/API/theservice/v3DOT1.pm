@@ -20,6 +20,11 @@ Readonly our $API_DATA => {
             'name' => {'type' => 'string','path' => ['something','name']},
         },
     },
+
+    simple => {
+        method => 'GET',
+        endpoint => '/simple',
+    },
 };
 
 1;

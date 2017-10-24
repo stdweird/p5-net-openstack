@@ -1,37 +1,21 @@
 use strict;
 use warnings;
 
+use File::Basename;
+BEGIN {
+    push(@INC, dirname(__FILE__));
+}
+
 use Test::More;
 use Test::MockModule;
 
-use FindBin qw($Bin);
-use lib "$Bin/testapi";
+use testapi;
 
-{
-    package testclient;
-    use parent qw(Net::OpenStack::Client::API);
-    sub new
-    {
-        my ($this) = @_;
-        my $class = ref($this) || $this;
-        my $self = {};
-        bless $self, $class;
-        return $self;
-    }
-    sub rpc
-    {
-        my ($self, $req) = @_;
-        # dummy rpc call, do nothing, just wrap the request in simple hashref and return it
-        return {req => $req};
-    }
-
-}
-
-my $client = testclient->new();
-$client->{version} = 'v3.1';
+my $client = testapi->new();
+$client->{versions}->{theservice} = 'v3.1';
 my $resp = $client->api_theservice_humanreadable();
 isa_ok($resp->{req}, 'Net::OpenStack::Client::Request',
-       "client method called returned AUTOLOADed response with call to rpc method");
+       "client method called returned AUTOLOADed response with call to rest method");
 like($resp->{req}->{error},
      qr{endpoint template user name user mandatory},
      "used request missing templates");

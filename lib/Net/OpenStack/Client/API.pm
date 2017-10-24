@@ -30,12 +30,15 @@ sub AUTOLOAD
 
     my ($cmd, $fail);
     my $api_pattern = "^${API_METHOD_PREFIX}([^_]+)_(.*)\$";
-    if ($called =~ m/$api_pattern/) {
-        ($cmd, $fail) = retrieve($1, $2, $self->{version});
+    if (!defined($self->{versions})) {
+        $fail = "no versions specified";
+    } elsif ($called =~ m/$api_pattern/) {
+        ($cmd, $fail) = retrieve($1, $2, $self->{versions}->{$1});
     } else {
         # TODO:
-        #    guess the service based on service + API version attribute
-        $fail = "only $API_METHOD_PREFIX methods supported version $self->{version}";
+        #    Add support for guessing the service based on service + API version attribute
+        my $versions_txt = join(",", map {"$_=$self->{versions}->{$_}"} sort keys %{$self->{versions}});
+        $fail = "only $API_METHOD_PREFIX methods supported versions $versions_txt";
     }
 
     if ($fail) {
@@ -46,7 +49,7 @@ sub AUTOLOAD
         # (so they are only autoloaded once when they are first called),
         # but that breaks inheritance.
 
-        return $self->rpc(process_args($cmd, @args));
+        return $self->rest(process_args($cmd, @args));
     }
 }
 

@@ -5,7 +5,7 @@ use warnings qw(FATAL numeric);
 
 use Net::OpenStack::Client::Request;
 
-# cannout use 'use Types::Serialiser'; it is incompatible with JSON::XS 2.X (eg on EL6)
+# cannot use 'use Types::Serialiser'; it is incompatible with JSON::XS 2.X (eg on EL6)
 use JSON::XS;
 use Readonly;
 
@@ -25,7 +25,7 @@ Readonly::Hash my %CONVERT_DISPATCH => {
 Readonly::Hash my %CONVERT_ALIAS => {
 };
 
-Readonly my $API_RPC_OPTION_PATTERN => '^__';
+Readonly my $API_REST_OPTION_PATTERN => '^__';
 
 
 =head1 NAME
@@ -89,12 +89,16 @@ Returns errormessage (which is undef on success).
 
 sub check_option
 {
-    my ($opt, $value, $where) = @_;
+    my ($opt, $value, $where, $attr) = @_;
 
     my $errmsg;
 
     my $ref = ref($value);
     my $name = $opt->{name};
+
+    if ($attr) {
+        # insert value attribute if needed. Reset where to this attribute
+    };
 
     # Check mandatory / undef
     my $mandatory = $opt->{required} ? 1 : 0;
@@ -142,7 +146,7 @@ Command hashref
 =item options (optional)
 
 (All options starting with C<__> are passed as options to
-C<Net::OpenStack::Client::RPC::rpc>, with C<__> prefix removed).
+C<Net::OpenStack::Client::REST::rest>, with C<__> prefix removed).
 
 =back
 
@@ -156,7 +160,7 @@ Request instance:
 
 =item opts: hashref with options
 
-=item rpc: hashref with options for the RPC call
+=item rest: hashref with options for the REST call
 
 =back
 
@@ -168,9 +172,15 @@ sub process_args
 {
     my ($cmdhs, @args) = @_;
 
+    # template name and value
     my $templates = {};
-    my $opts = {};
-    my $rpc = {};
+    # option name and value
+    my $options = {};
+    # option name and path (separate from option values)
+    my $paths = {};
+    # rest options
+    my $rest = {};
+
     my $errmsg;
 
     my $endpoint = $cmdhs->{endpoint};
@@ -198,24 +208,27 @@ sub process_args
     foreach my $name (sort keys %{$cmdhs->{options} || {}}) {
         my $opt = $cmdhs->{options}->{$name};
         $opt->{name} = $name if ! exists($opt->{$name});
-        $errmsg = check_option($opt, delete $origopts{$name}, $opts);
+
+        # Need both value (added via check_option) and path
+        $paths->{$name} = $opt->{path};
+        $errmsg = check_option($opt, delete $origopts{$name}, $options);
         return &$err_req("option $name") if $errmsg;
     }
 
-    # Filter out any RPC options
+    # Filter out any REST options
     # Any remaining key is invalid
     foreach my $name (sort keys %origopts) {
-        if ($name =~ m/$API_RPC_OPTION_PATTERN/) {
+        if ($name =~ m/$API_REST_OPTION_PATTERN/) {
             my $val = $origopts{$name};
-            $name =~ s/$API_RPC_OPTION_PATTERN//;
-            $rpc->{$name} = $val;
+            $name =~ s/$API_REST_OPTION_PATTERN//;
+            $rest->{$name} = $val;
         } else {
             return &$err_req("option invalid name $name");
         };
     }
 
     # No error
-    return mkrequest($endpoint, $method, tpls => $templates, opts => $opts, rpc => $rpc);
+    return mkrequest($endpoint, $method, tpls => $templates, opts => $options, paths => $paths, rest => $rest);
 }
 
 =pod

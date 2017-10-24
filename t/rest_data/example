@@ -1,0 +1,5 @@
+$cmds{post}{cmd}="POST /some/auser/super";
+$cmds{post}{result}={woo => 'hoo'};
+
+$cmds{get}{cmd}="GET";
+$cmds{get}{headers}={'Content-Type' => 'application/json', 'Special' => 123};

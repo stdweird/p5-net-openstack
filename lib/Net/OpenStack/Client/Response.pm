@@ -45,7 +45,9 @@ Options
 
 =over
 
-=item answer: complete answer hashref
+=item data: (first) response content, possibly decoded
+
+=item headers: hashref with reponse headers
 
 =item error: an error (passed to C<mkerror>).
 
@@ -60,7 +62,8 @@ sub new
     my ($this, %opts) = @_;
     my $class = ref($this) || $this;
     my $self = {
-        answer => $opts{answer} || {},
+        data => $opts{data} || {},
+        headers => $opts{headers} || {},
     };
     bless $self, $class;
 
@@ -103,7 +106,7 @@ sub set_result
     if (! $self->is_error()) {
         $result_path = $RESULT_PATH if ! defined($result_path);
 
-        $res = $self->{answer};
+        $res = $self->{data};
         # remove any "empty" paths
         foreach my $subpath (grep {$_} split('/', $result_path)) {
             $res = $res->{$subpath} if (defined($res));

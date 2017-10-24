@@ -99,7 +99,7 @@ ct({required => 1, name => 'abc', type => 'boolean'}, 1, {xyz => 2},
 
 sub pat
 {
-    my ($res, $msg, $err, $tpls, $opts, $rpc, $jres) = @_;
+    my ($res, $msg, $err, $tpls, $opts, $paths, $rest, $jres) = @_;
 
     isa_ok($res, "Net::OpenStack::Client::Request", 'process_args returns Request instance');
 
@@ -110,7 +110,8 @@ sub pat
 
         is_deeply($res->{tpls}, $tpls, "templates $msg");
         is_deeply($res->{opts}, $opts, "options $msg");
-        is_deeply($res->{rpc}, $rpc, "rpc options $msg");
+        is_deeply($res->{paths}, $paths, "paths $msg");
+        is_deeply($res->{rest}, $rest, "rest options $msg");
     } else {
         $err = 'WILLNEVERMATCH' if ! defined($err);
         like($res->{error}, qr{$err}, "error $msg");
@@ -125,6 +126,7 @@ my $cmdhs = {
     options => { test => {
         name => 'test',
         type => 'long',
+        path => ['some', 'path'],
     }},
 };
 
@@ -148,8 +150,8 @@ pat(process_args($cmdhs, user => 'auser', test => 2, abc => 10),
     'option invalid name abc');
 
 pat(process_args($cmdhs, user => 'auser', test => 2, __abc => 10),
-    'process_args returns 4 element tuple (incl __ stripped rpc opt)',
-    undef, {user => 'auser'}, {test => 2}, {abc => 10}, '[{"user":"auser"},{"test":2}]');
+    'process_args returns 4 element tuple (incl __ stripped rest opt)',
+    undef, {user => 'auser'}, {test => 2}, {test => ['some', 'path']}, {abc => 10}, '[{"user":"auser"},{"test":2}]');
 
 
 done_testing();

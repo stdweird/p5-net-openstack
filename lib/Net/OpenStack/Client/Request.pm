@@ -10,9 +10,23 @@ Readonly our @SUPPORTED_METHODS => qw(DELETE GET PATCH POST PUT);
 Readonly our @METHODS_REQUIRE_OPTIONS => qw(PATCH POST PUT);
 
 our @EXPORT = qw(mkrequest);
-our @EXPORT_OK = qw(parse_endpoint @SUPPORTED_METHODS @METHODS_REQUIRE_OPTIONS);
+our @EXPORT_OK = qw(parse_endpoint @SUPPORTED_METHODS @METHODS_REQUIRE_OPTIONS $HDR_X_AUTH_TOKEN);
 
 use overload bool => '_boolean';
+
+Readonly our $HDR_ACCEPT => 'Accept';
+Readonly our $HDR_ACCEPT_ENCODING => 'Accept-Encoding';
+Readonly our $HDR_CONTENT_TYPE => 'Content-Type';
+Readonly our $HDR_X_AUTH_TOKEN => 'X-Auth-Token';
+Readonly our $HDR_X_SUBJECT_TOKEN => 'X-Subject-Token';
+
+
+Readonly my %DEFAULT_HEADERS => {
+    $HDR_ACCEPT => 'application/json, text/plain',
+    $HDR_ACCEPT_ENCODING => 'identity, gzip, deflate, compress',
+    $HDR_CONTENT_TYPE => 'application/json',
+};
+
 
 =head1 NAME
 
@@ -98,12 +112,11 @@ sub new
 
         tpls => $opts{tpls} || {},
         opts => $opts{opts} || {},
+        paths => $opts{paths} || {},
 
-        rpc => $opts{rpc} || {}, # options for rpc
-        post => $opts{post} || {}, # options for post
+        rest => $opts{rest} || {}, # options for rest
 
         error => $opts{error}, # no default
-        id => $opts{id}, # no default
     };
 
     if (grep {$method eq $_} @SUPPORTED_METHODS) {
@@ -154,6 +167,74 @@ sub endpoint
 
     return $endpoint;
 }
+
+=item opts_data
+
+Generate hashref from options, to be used for JSON encoding.
+
+Returns empty hasref, even if no options existed.
+
+=cut
+
+sub opts_data
+{
+    my ($self) = @_;
+
+    my $root = {};
+
+    foreach my $key (sort keys %{$self->{opts}}) {
+        my @paths = @{$self->{paths}->{$key}};
+        my $lastpath = pop(@paths);
+        my $here = $root;
+        foreach my $path (@paths) {
+            # build tree
+            $here->{$path} = {};
+            $here = $here->{$path};
+        }
+        # no intermediate variable with value
+        $here->{$lastpath} = $self->{opts}->{$key};
+    }
+
+    return $root;
+}
+
+=item headers
+
+Return headers for the request.
+
+Supported options:
+
+=over
+
+=item token: authentication token stored in X-Auth-Token
+
+=item headers: hashref with headers to add that take precedence over the defaults.
+Headers with an undef value will be removed.
+
+=back
+
+=cut
+
+sub headers
+{
+    my ($self, %opts) = @_;
+
+    my $headers = {%DEFAULT_HEADERS};
+
+    while (my ($hdr, $value) = each %{$opts{headers} || {}}) {
+        if (defined($value)) {
+            $headers->{$hdr} = $value;
+        } else {
+            delete $headers->{$hdr};
+        }
+    }
+
+    $headers->{$HDR_X_AUTH_TOKEN} = $opts{token} if defined $opts{token};
+
+    return $headers;
+}
+
+
 
 
 
