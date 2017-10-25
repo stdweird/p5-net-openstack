@@ -13,7 +13,7 @@ our \$VERSION = version->new("v[% version %]");
 
 use Readonly;
 
-Readonly our %API_DATA => {
+Readonly our \$API_DATA => {
 [% FILTER indent -%]
 [%-     FOREACH method IN methods.pairs %]
 [%          method.key %] => {
@@ -32,6 +32,9 @@ options => {
 [%-                      END %]
 },
 [%-                 END %]
+[%                  IF method.value.result.defined -%]
+result => '[%         method.value.result %]',
+[%                  END %]
 [%-             END %]
 },
 [%      END -%]

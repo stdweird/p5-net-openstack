@@ -97,7 +97,11 @@ Options
 
 =item error: an error (no default)
 
-=item id: id (no default)
+=item service: service name
+
+=item version: service version
+
+=item result: result path for the response
 
 =back
 
@@ -117,6 +121,10 @@ sub new
         rest => $opts{rest} || {}, # options for rest
 
         error => $opts{error}, # no default
+
+        service => $opts{service},
+        version => $opts{version},
+        result => $opts{result},
     };
 
     if (grep {$method eq $_} @SUPPORTED_METHODS) {
@@ -142,11 +150,22 @@ This does not modify the endpoint attribute.
 
 Return templated endpoint on success or undef on failure.
 
+If host is defined, try to make a full URL
+
+=over
+
+=item if you provide only fqdn, make a https://<fqdn>/v<version/<endpoint>
+
+=item if you provide URL, check for version suffix, return <url>/<endpoint>
+
+=back
+
 =cut
+
 
 sub endpoint
 {
-    my ($self) = @_;
+    my ($self, $host) = @_;
 
     # reset error attribute
     $self->{error} = undef;
@@ -163,6 +182,23 @@ sub endpoint
             $self->{error} = "Missing template $template data to replace endpoint $self->{endpoint}";
             return;
         }
+    }
+
+    if ($host) {
+        my $url = $host;
+
+        my $version_suffix = "v$self->{version}";
+        $version_suffix =~ s/^v+/v/;
+
+        if ($host !~ m/^http/) {
+            $url = "https://$url/$version_suffix";
+        } elsif ($host !~ m#/v[\d.]+/?$#) {
+            $url .= "/$version_suffix";
+        }
+
+        $url =~ s#/+$##;
+        $endpoint =~ s#^/+##;
+        $endpoint = "$url/$endpoint";
     }
 
     return $endpoint;
@@ -188,7 +224,7 @@ sub opts_data
         my $here = $root;
         foreach my $path (@paths) {
             # build tree
-            $here->{$path} = {};
+            $here->{$path} = {} if !exists($here->{$path});
             $here = $here->{$path};
         }
         # no intermediate variable with value
@@ -233,9 +269,6 @@ sub headers
 
     return $headers;
 }
-
-
-
 
 
 =item is_error

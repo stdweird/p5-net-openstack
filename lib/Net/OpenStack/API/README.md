@@ -17,7 +17,7 @@ TODO: If no version is set, use `CURRENT` from version API
 * Call method with args
   * AUTOLOAD in Client::API
     * retrieve from API::Magic
-      * looks for description/api data in API::<service>::<version>
+      * looks for description/api data in API::<Service>::<version>
     * process_args from API::Magic
       * preps request instance based on data and args
       * executes and returns the request with rest(request) call

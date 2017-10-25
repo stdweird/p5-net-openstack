@@ -1,4 +1,4 @@
-package Net::OpenStack::API::theservice::v3DOT1;
+package Net::OpenStack::API::Theservice::v3DOT1;
 
 use strict;
 use warnings;
@@ -19,11 +19,13 @@ Readonly our $API_DATA => {
             'boolean' => {'path' => ['something','boolean'],'type' => 'boolean'},
             'name' => {'type' => 'string','path' => ['something','name']},
         },
+        result => '/woo',
     },
 
     simple => {
         method => 'GET',
         endpoint => '/simple',
+        result => 'Special',
     },
 };
 

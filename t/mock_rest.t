@@ -37,17 +37,19 @@ isa_ok($resp, 'Net::OpenStack::Client::Response', 'got valid response');
 
 is_deeply($resp->{data}, {woo => 'hoo'}, "Correct data from POST");
 is_deeply($resp->{headers}, {'Content-Type' => 'application/json'}, "Correct (default) headers");
+is($resp->result, 'hoo', "Result path as abs path applied to response data");
 ok(!$resp->{error}, "response error is false");
 ok($resp, "response is not an error");
 
 $resp = $cl->api_theservice_simple();
 is_deeply($resp->{data}, {success => 1}, "Correct (default) data from GET");
 is_deeply($resp->{headers}, {'Content-Type' => 'application/json', 'Special' => 123}, "Correct headers");
+is($resp->result, 123, "Result path as header applied to response data");
 
 my @hist = find_method_history(''); # empty string matches everything
 #diag "whole history ", explain \@hist;
 is_deeply(\@hist, [
-    'POST /some/auser/super {"something":{"name":"thename"}} Accept=application/json, text/plain,Accept-Encoding=identity, gzip, deflate, compress,Content-Type=application/json',
+    'POST /some/auser/super {"something":{"int":1,"name":"thename"}} Accept=application/json, text/plain,Accept-Encoding=identity, gzip, deflate, compress,Content-Type=application/json',
     'GET /simple  Accept=application/json, text/plain,Accept-Encoding=identity, gzip, deflate, compress,Content-Type=application/json'
 ], "method history: one POST call");
 

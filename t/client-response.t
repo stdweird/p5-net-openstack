@@ -54,19 +54,19 @@ is("$e", "Error 100", "code 100 error message for returned error");
 
 =cut
 
-$r = mkresponse(data => { a => { b => {c => { d => 1}}}, result => {result => {awe => 'some'}}});
-is_deeply($r->set_result(), {awe => 'some'}, "result using default resultpath returns result");
-is_deeply($r->{result}, {awe => 'some'}, "result attribute set using default resultpath");
+$r = mkresponse(data => { a => { b => {c => { d => 1}}}}, headers => {myheader => 1});
+is_deeply($r->set_result(), { a => { b => {c => { d => 1}}}}, "result using default resultpath returns result");
+is_deeply($r->{result}, { a => { b => {c => { d => 1}}}}, "result attribute set using default resultpath");
 
-is_deeply($r->set_result('a/b/c'), {d => 1}, "result using custom resultpath");
-is_deeply($r->{result}, {d => 1}, "result attribute set using custom resultpath");
+is_deeply($r->set_result('myheader'), 1, "result using non-absolute path resultpath returns header data");
 
-ok(! defined($r->set_result('a/b/e')), "result undef using non-existing resultpath");
-ok(! defined($r->{result}), "result attribute undef using non-existing resultpath");
+is_deeply($r->set_result('/a/b/c'), {d => 1}, "result using custom resultpath");
 
-$r = mkresponse(data => { a => {b => {c => { d => 1}}}, result => {result => {awe => 'some'}}}, error => 1);
+ok(! defined($r->set_result('/a/b/e')), "result undef using non-existing resultpath");
+
+$r = mkresponse(data => { a => {b => {c => { d => 1}}}}, error => 1);
 ok($r->is_error(), 'error response');
-ok(! defined($r->set_result('a/b/c')), "set_result returns undef on error response");
+ok(! defined($r->set_result('/a/b/c')), "set_result returns undef on error response");
 ok(! defined($r->{result}), "result attribute not set on error response");
 
 done_testing();

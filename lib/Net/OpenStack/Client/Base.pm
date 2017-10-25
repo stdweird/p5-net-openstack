@@ -20,7 +20,10 @@ sub new
 {
     my $this = shift;
     my $class = ref($this) || $this;
-    my $self = {}; # here, it gives a reference on a hash
+    my $self = {
+        versions => {},
+        services => {},
+    }; # here, it gives a reference on a hash
     bless $self, $class;
 
     return $self->_initialize(@_) ? $self : undef;

@@ -228,7 +228,17 @@ sub process_args
     }
 
     # No error
-    return mkrequest($endpoint, $method, tpls => $templates, opts => $options, paths => $paths, rest => $rest);
+    return mkrequest(
+        $endpoint,
+        $method,
+        tpls => $templates,
+        opts => $options,
+        paths => $paths,
+        rest => $rest,
+        service => $cmdhs->{service},
+        version => $cmdhs->{version},
+        result => $cmdhs->{result},
+        );
 }
 
 =pod

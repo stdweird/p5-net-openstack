@@ -13,11 +13,12 @@ our $VERSION = version->new("v1");
 
 use Readonly;
 
-Readonly our %API_DATA => {
+Readonly our $API_DATA => {
     
     all => {
         method => 'GET',
         endpoint => '/',
+        
         
     
     },

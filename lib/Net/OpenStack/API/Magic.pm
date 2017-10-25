@@ -7,6 +7,7 @@ use Module::Load;
 use Net::OpenStack::Client::Request qw(@SUPPORTED_METHODS @METHODS_REQUIRE_OPTIONS);
 
 use Readonly;
+use version;
 
 use base qw(Exporter);
 
@@ -69,12 +70,18 @@ sub retrieve
     # Return already cached data
     return ($cmd_cache->{$service}->{$name}, undef) if defined(($cmd_cache->{$service} || {})->{$name});
 
+    if (ref($version) ne 'version') {
+        $version = "v$version" if $version !~ m/^v/;
+        $version = version->new($version);
+    }
+
     my $err_prefix = "retrieve name $name for service $service version $version failed:";
 
-    my $versionpackagename = $version;
+    my $versionpackagename = "$version";
     $versionpackagename =~ s/[.]/DOT/g; # cannot have a . in the package name
 
-    my $package = "Net::OpenStack::API::${service}::${versionpackagename}";
+    my $servicepackagename = ucfirst($service);
+    my $package = "Net::OpenStack::API::${servicepackagename}::${versionpackagename}";
 
     local $@;
     eval {
@@ -91,8 +98,12 @@ sub retrieve
         $apidata = ${$varname};
         use strict 'refs';
     };
-    if ($@ || !defined $apidata || ref($apidata) ne 'HASH') {
-        return {}, "$err_prefix no variable $varname".($@ ? ": $@" : "");
+    if ($@) {
+        return {}, "$err_prefix somthing went wrong while looking for variable $varname: $@";
+    } elsif (!defined $apidata) {
+        return {}, "$err_prefix no variable $varname";
+    } elsif (ref($apidata) ne 'HASH') {
+        return {}, "$err_prefix variable $varname not a hash (got ".ref($apidata).")";
     };
 
     my $data = $apidata->{$name};
@@ -123,7 +134,10 @@ sub retrieve
         method => $method, # HTTP method
         service => $service,
         endpoint => $data->{endpoint},
+        version => $version,
     };
+
+    $result->{result} = $data->{result} if defined($data->{result});
 
     foreach my $k (qw(templates options)) {
         $result->{$k} = $data->{$k} if exists($data->{$k});

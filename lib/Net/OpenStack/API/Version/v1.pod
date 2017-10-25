@@ -22,9 +22,11 @@ List all versions
 
 =over
 
-=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::RPC::rpc>.
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
 
 =back
+
+
 
 =back
 

@@ -28,9 +28,37 @@ Add domain
 
 =item name: string (JSON path: domain -> name)
 
-=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::RPC::rpc>.
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
 
 =back
+
+
+
+=back
+
+=cut
+
+
+
+=item catalog
+
+API method catalog
+
+Get the services catalog
+
+=over
+
+=item No required url / endpoint templates
+
+=item Options
+
+=over
+
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
+
+=back
+
+Result path is set to JSON path /catalog
 
 =back
 
@@ -59,9 +87,11 @@ Show domain details
 
 =over
 
-=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::RPC::rpc>.
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
 
 =back
+
+
 
 =back
 
@@ -83,9 +113,11 @@ List domains
 
 =over
 
-=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::RPC::rpc>.
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
 
 =back
+
+
 
 =back
 
@@ -107,17 +139,23 @@ Password authentication with unscoped authorization
 
 =over
 
-=item domain_name: string (JSON path: auth -> identity -> password -> user -> domain -> name)
-
 =item methods: arrayref of string (JSON path: auth -> identity -> methods)
 
 =item password: string (JSON path: auth -> identity -> password -> user -> password)
 
+=item project_domain_name: string (JSON path: auth -> scope -> project -> domain -> name)
+
+=item project_name: string (JSON path: auth -> scope -> project -> name)
+
+=item user_domain_name: string (JSON path: auth -> identity -> password -> user -> domain -> name)
+
 =item user_name: string (JSON path: auth -> identity -> password -> user -> name)
 
-=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::RPC::rpc>.
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
 
 =back
+
+Result is set to X-Subject-Token response header.
 
 =back
 

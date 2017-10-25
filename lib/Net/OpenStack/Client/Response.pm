@@ -13,7 +13,7 @@ use overload bool => '_boolean';
 
 use Readonly;
 
-Readonly my $RESULT_PATH => 'result/result';
+Readonly my $RESULT_PATH => '/';
 
 =head1 NAME
 
@@ -69,6 +69,7 @@ sub new
 
     # First error
     $self->set_error($opts{error});
+
     # Then result
     $self->set_result($opts{result_path});
 
@@ -92,8 +93,16 @@ sub set_error
 
 Set and return the result attribute based on the C<result_path>.
 
-The C<result_path> is path-like string, indicating which subtree of the answer
-should be set as result attribute (default C<result/result>).
+The C<result_path> is either
+
+=over
+
+=item (absolute, starting with C</>) path-like string, indicating which subtree of the answer
+should be set as result attribute (default C</>).
+
+=item anything else is considered a header (from the response headers).
+
+=back
 
 =cut
 
@@ -107,16 +116,42 @@ sub set_result
         $result_path = $RESULT_PATH if ! defined($result_path);
 
         $res = $self->{data};
-        # remove any "empty" paths
-        foreach my $subpath (grep {$_} split('/', $result_path)) {
-            $res = $res->{$subpath} if (defined($res));
-        };
+
+        if ($result_path =~ m#^/#) {
+            # remove any "empty" paths
+            foreach my $subpath (grep {$_} split('/', $result_path)) {
+                $res = $res->{$subpath} if (defined($res));
+            };
+        } else {
+            # a header
+            $res = $self->{headers}->{$result_path};
+        }
     };
 
     $self->{result} = $res;
 
     return $self->{result};
 };
+
+=item result
+
+Return the result attribute.
+
+If C<result_path> is passed (and defined),
+(re)set the result attribute first.
+(The default result path cannot be (re)set this way.
+Use C<set_result> method for that).
+
+=cut
+
+sub result
+{
+    my ($self, $result_path) = @_;
+
+    $self->set_result($result_path) if defined($result_path);
+
+    return $self->{result};
+}
 
 =item is_error
 

@@ -31,6 +31,14 @@ No required url / endpoint templates
 
 =back
 
+[% IF details.result.defined -%]
+[%-     IF details.result.match('^/') -%]
+Result path is set to JSON path [% details.result %]
+[%-     ELSE -%]
+Result is set to [% details.result %] response header.
+[%-     END -%]
+[%- END %]
+
 =back
 
 =cut

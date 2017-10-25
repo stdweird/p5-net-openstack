@@ -6,6 +6,7 @@ use Net::OpenStack::Client::Request qw(mkrequest parse_endpoint @SUPPORTED_METHO
 
 use REST::Client;
 use Test::More;
+use version;
 
 use File::Basename;
 BEGIN {
@@ -44,7 +45,7 @@ ok(! defined($r->{id}), 'No id attribute set by default');
 ok(! $r->is_error(), 'is_error false');
 ok($r, 'overloaded boolean = true if no error via is_error');
 
-$r = mkrequest('d', 'PUT', tpls => {a => 2}, opts => {a => 3, b => 4}, paths => {a => [qw(some path)], b => ['a']}, error => 'message', rest => {woo => 'hoo'});
+$r = mkrequest('d', 'PUT', tpls => {a => 2}, opts => {a => 3, b => 4}, paths => {a => [qw(some path)], b => ['a']}, error => 'message', rest => {woo => 'hoo'}, service => 'myservice', version => 2);
 is($r->{endpoint}, 'd', 'endpoint set 2');
 is($r->{method}, 'PUT', 'method set 2');
 is_deeply($r->{tpls}, {a => 2}, 'array ref as tpls');
@@ -54,6 +55,8 @@ is_deeply($r->{rest}, {woo => 'hoo'}, 'hash ref as rest');
 is($r->{error}, 'message', 'error attribute set');
 ok($r->is_error(), 'is_error true');
 ok(! $r, 'overloaded boolean = false on error via is_error');
+is($r->{service}, 'myservice', "service attribute");
+is($r->{version}, 2, "version attribute");
 
 $r = Net::OpenStack::Client::Request->new('c', 'NOSUCHMETHOD');
 isa_ok($r, 'Net::OpenStack::Client::Request', 'a Net::OpenStack::Client::Request instance created');
@@ -69,9 +72,12 @@ is_deeply(parse_endpoint("/a/b/c"), [], "endpoint w/o templates");
 is_deeply(parse_endpoint("/a/{b}/c/{b}/{e}/"), [qw(b e)], "endpoint with templates");
 
 my $endpt = 'd/{a}/b/{a}/c/{d}/e';
-$r = mkrequest($endpt, 'PUSH', tpls => {a => 2, d => 'd'});
+$r = mkrequest($endpt, 'PUT', tpls => {a => 2, d => 'd'}, version => version->new('v1.2'));
 is($r->{endpoint}, $endpt, "endpoint before templating");
 is($r->endpoint, 'd/2/b/2/c/d/e', "templated endpoint");
+is($r->endpoint("my.fqdn"), 'https://my.fqdn/v1.2/d/2/b/2/c/d/e', "templated endpoint with fqdn host");
+is($r->endpoint("http://my.fqdn"), 'http://my.fqdn/v1.2/d/2/b/2/c/d/e', "templated endpoint with url host w/o version");
+is($r->endpoint("http://my.fqdn/v3.5"), 'http://my.fqdn/v3.5/d/2/b/2/c/d/e', "templated endpoint with url host w version");
 is($r->{endpoint}, $endpt, "endpoint after templating");
 
 delete $r->{tpls}->{d};
@@ -92,7 +98,7 @@ my $req = $resp->{req};
 isa_ok($req, 'Net::OpenStack::Client::Request',
        "client method called returned AUTOLOADed response with call to rest method");
 
-is_deeply($req->opts_data, {something => {name => 'thename'}}, "Request opts_data returns hashref");
+is_deeply($req->opts_data, {something => {name => 'thename', int => 1}}, "Request opts_data returns hashref");
 
 
 =head1 headers

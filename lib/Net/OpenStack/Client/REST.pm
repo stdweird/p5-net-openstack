@@ -55,14 +55,20 @@ sub _call
 
     my $response;
 
-    if ($code == 200) {
+    if ($code == 200 || $code == 201) {
         my $type = $rheaders->{'Content-Type'} || 'RESPONSE_WO_CONTENT_TYPE_HEADER';
         if ($type =~ qr{^application/json}i) {
             $response = $json->decode($content);
         } else {
             $response = $content;
         }
-        $self->debug("Successful REST $method type $type".($self->{debugapi} ? " content $content" : ""));
+        $self->debug("Successful REST $method url $url type $type");
+        if ($self->{debugapi}) {
+            # might contain sensitive data, eg security token
+            my $headers_txt = join(',', map {"$_=$rheaders->{$_}"} sort keys %$rheaders);
+            $self->debug("REST $method full response headers $headers_txt");
+            $self->debug("REST $method full response content $content");
+        }
     } else {
         $err = "$method failed (url $url code $code)";
         $content = '<undef>' if ! defined($content);
@@ -90,7 +96,7 @@ sub _call
 # TODO: support lookup of links in arrays?
 sub _page_paths
 {
-    my $data = shift;
+    my ($self, $data) = @_;
 
     my @paths;
 
@@ -111,7 +117,7 @@ sub _page_paths
                 }
             }
         } elsif ($ref eq 'HASH') {
-            foreach my $rpath_tuple (_page_paths($data->{$key})) {
+            foreach my $rpath_tuple ($self->_page_paths($data->{$key})) {
                 # add current key to path element (i.e. the path is relative to $key)
                 unshift(@{$rpath_tuple->[0]}, $key);
                 push(@paths, $rpath_tuple);
@@ -129,8 +135,7 @@ sub _page
 
     my $err;
 
-    my @paths = _page_paths($response);
-    foreach my $path_tuple (_page_paths($response)) {
+    foreach my $path_tuple ($self->_page_paths($response)) {
         # No body, this is GET only
         # We only care about the response headers of the first batch
         $self->debug("_page method $method url $path_tuple->[1]");
@@ -156,7 +161,7 @@ sub _page
 
 =item rest
 
-Given a Request instance C<req>, perform this request
+Given a Request instance C<req>, perform this request.
 All options are passed to the headers method.
 The token option is added if the token attribute exists and
 if not token option was already in the options.
@@ -173,7 +178,7 @@ sub rest
     my $method = $req->{method};
 
     # url
-    my $url = $req->endpoint();
+    my $url = $req->endpoint($self->{services}->{$req->{service}});
     my @args = ($url);
 
     # body if needed
@@ -198,10 +203,16 @@ sub rest
     }
 
     my ($response, $rheaders, $err) = $self->_call($method, @args);
+    # The err here could be a failure in the paged GET repsonse
     ($response, $err) = $self->_page($method, $response, $headers) if ($response && ref($response) eq 'HASH');
 
-    # The err here could be a failure in the paged GET repsonse
-    return mkresponse(data => $response, headers => $rheaders, error => $err);
+    my %ropts = (
+        data => $response,
+        headers => $rheaders,
+        error => $err,
+    );
+    $ropts{result_path} = $req->{result} if defined $req->{result};
+    return mkresponse(%ropts);
 }
 
 =pod

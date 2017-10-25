@@ -7,8 +7,8 @@ use Test::MockModule;
 use FindBin qw($Bin);
 use lib "$Bin/testapi";
 
-#use Net::OpenStack::API::theservice::v3DOT1;
-#diag "API_DATA ", explain $Net::OpenStack::API::theservice::v3DOT1::API_DATA;
+#use Net::OpenStack::API::Theservice::v3DOT1;
+#diag "API_DATA ", explain $Net::OpenStack::API::Theservice::v3DOT1::API_DATA;
 
 use JSON::XS;
 
@@ -39,6 +39,7 @@ my $err;
 ($c, $err) = retrieve('theservice', 'humanreadable', 'v3.1');
 is_deeply($c, {
     service => 'theservice',
+    version => version->new('v3.1'),
     name => 'humanreadable',
     method => 'POST',
     endpoint => '/some/{user}/super',
@@ -48,6 +49,7 @@ is_deeply($c, {
         'boolean' => {'path' => ['something','boolean'],'type' => 'boolean'},
         'name' => {'type' => 'string','path' => ['something','name']},
     },
+    result => '/woo',
 }, 'theservice humanreadable retrieved');
 ok(! defined($err), "No error");
 #diag "retrieve ", explain $c, " error ", explain $err;
@@ -61,7 +63,7 @@ ok(! defined($err), "No error 2nd time");
 ($c, $err) = retrieve('noservice', 'certainlynomethod', 'v1.2.3');
 is_deeply($c, {}, 'unknown service retrieves undef');
 like($err,
-     qr{retrieve name certainlynomethod for service noservice version v1.2.3 failed: no module Net::OpenStack::API::noservice::v1DOT2DOT3:},
+     qr{retrieve name certainlynomethod for service noservice version v1.2.3 failed: no module Net::OpenStack::API::Noservice::v1DOT2DOT3:},
      "retrieve of unknown service returns error message");
 
 ($c, $err) = retrieve('theservice', 'nomethod', 'v3.1');
@@ -82,6 +84,24 @@ my $c3;
 # This is an identical test, not only content
 isnt($c3, $c2, 'user_add retrieved 3rd time after cache flush is not same data/instance');
 is_deeply($c3, $c2, 'user_add retrieved 3rd time after cache flush has same data');
+
+=head2 mandatory services / methods
+
+=cut
+
+my $mandatory = {
+    identity => { v3 => [qw(tokens)]},
+};
+
+foreach my $service (sort keys %$mandatory) {
+    foreach my $version (sort keys %{$mandatory->{$service}}) {
+        foreach my $method (@{$mandatory->{$service}->{$version}}) {
+            ($c, $err) = retrieve($service, $method, $version);
+            ok(!$err, "successfully retrieved mandatory service $service version $version method $method");
+        }
+    }
+}
+
 
 
 done_testing;
