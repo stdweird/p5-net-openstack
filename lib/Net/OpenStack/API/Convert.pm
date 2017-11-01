@@ -202,6 +202,11 @@ sub process_args
         return &$err_req("endpoint template $name") if $errmsg;
     }
 
+    my $raw = delete $origopts{raw};
+    if ($raw && ref($raw) ne 'HASH') {
+        return &$err_req("raw option must be a hashref, got ".ref($raw));
+    }
+
     # Check options
     # Process all options (for JSON data)
     # The processed options are removed from %origopts
@@ -235,6 +240,7 @@ sub process_args
         opts => $options,
         paths => $paths,
         rest => $rest,
+        raw => $raw,
         service => $cmdhs->{service},
         version => $cmdhs->{version},
         result => $cmdhs->{result},

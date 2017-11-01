@@ -117,6 +117,7 @@ sub new
         tpls => $opts{tpls} || {},
         opts => $opts{opts} || {},
         paths => $opts{paths} || {},
+        raw => $opts{raw},
 
         rest => $opts{rest} || {}, # options for rest
 
@@ -207,6 +208,7 @@ sub endpoint
 =item opts_data
 
 Generate hashref from options, to be used for JSON encoding.
+If C<raw> attribute is defined, ignore all options and return it.
 
 Returns empty hasref, even if no options existed.
 
@@ -216,19 +218,25 @@ sub opts_data
 {
     my ($self) = @_;
 
-    my $root = {};
+    my $root;
 
-    foreach my $key (sort keys %{$self->{opts}}) {
-        my @paths = @{$self->{paths}->{$key}};
-        my $lastpath = pop(@paths);
-        my $here = $root;
-        foreach my $path (@paths) {
-            # build tree
-            $here->{$path} = {} if !exists($here->{$path});
-            $here = $here->{$path};
+    if ($self->{raw}) {
+        # ignore all options passed
+        $root = $self->{raw};
+    } else {
+        $root = {};
+        foreach my $key (sort keys %{$self->{opts}}) {
+            my @paths = @{$self->{paths}->{$key}};
+            my $lastpath = pop(@paths);
+            my $here = $root;
+            foreach my $path (@paths) {
+                # build tree
+                $here->{$path} = {} if !exists($here->{$path});
+                $here = $here->{$path};
+            }
+            # no intermediate variable with value
+            $here->{$lastpath} = $self->{opts}->{$key};
         }
-        # no intermediate variable with value
-        $here->{$lastpath} = $self->{opts}->{$key};
     }
 
     return $root;

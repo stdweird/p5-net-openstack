@@ -28,6 +28,8 @@ Add domain
 
 =item name: string (JSON path: domain -> name)
 
+=item raw: hashref used for JSON body, ignoring all options
+
 =item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
 
 =back
@@ -53,6 +55,7 @@ Get the services catalog
 =item Options
 
 =over
+
 
 =item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
 
@@ -87,6 +90,7 @@ Show domain details
 
 =over
 
+
 =item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
 
 =back
@@ -112,6 +116,7 @@ List domains
 =item Options
 
 =over
+
 
 =item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
 
@@ -150,6 +155,8 @@ Password authentication with unscoped authorization
 =item user_domain_name: string (JSON path: auth -> identity -> password -> user -> domain -> name)
 
 =item user_name: string (JSON path: auth -> identity -> password -> user -> name)
+
+=item raw: hashref used for JSON body, ignoring all options
 
 =item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
 

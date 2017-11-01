@@ -100,6 +100,8 @@ isa_ok($req, 'Net::OpenStack::Client::Request',
 
 is_deeply($req->opts_data, {something => {name => 'thename', int => 1}}, "Request opts_data returns hashref");
 
+$resp = $client->api_theservice_humanreadable(user => 'auser', int => 1, name => 'thename', raw => {what => 'ever'});
+is_deeply($resp->{req}->opts_data, {what => 'ever'}, "Request opts_data returns raw hashref ignoring all options");
 
 =head1 headers
 
