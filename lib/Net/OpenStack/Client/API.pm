@@ -49,7 +49,11 @@ sub AUTOLOAD
         # (so they are only autoloaded once when they are first called),
         # but that breaks inheritance.
 
-        return $self->rest(process_args($cmd, @args));
+        if (ref($cmd->{code}) eq 'CODE') {
+            return $cmd->{code}->($self, @args);
+        } else {
+            return $self->rest(process_args($cmd, @args));
+        }
     }
 }
 

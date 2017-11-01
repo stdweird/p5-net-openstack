@@ -31,4 +31,9 @@ ok($req, "returned response used request has no error");
 is($req->{method}, 'POST', 'used request has POST method');
 is($req->{endpoint}, '/some/{user}/super', 'used request has endpoint');
 
+# custom client code
+
+my $custom_result = $client->api_theservice_custom_method("a", "b");
+is_deeply($custom_result, [qw(a b)], "custom_method from client module returns whatever it returns");
+
 done_testing;
