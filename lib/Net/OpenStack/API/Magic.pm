@@ -79,12 +79,18 @@ sub retrieve
     # Return already cached data
     return ($cache->{cmd}->{$service}->{$name}, undef) if defined(($cache->{cmd}->{$service} || {})->{$name});
 
-    if (ref($version) ne 'version') {
-        $version = "v$version" if $version !~ m/^v/;
-        $version = version->new($version);
+    my $err_prefix = "retrieve name $name for service $service";
+
+    if ($version) {
+        if (ref($version) ne 'version') {
+            $version = "v$version" if $version !~ m/^v/;
+            $version = version->new($version);
+        }
+    } else {
+        return {}, "$err_prefix no version defined";
     }
 
-    my $err_prefix = "retrieve name $name for service $service version $version failed:";
+    $err_prefix .= " version $version failed:";
 
     my $versionpackagename = "$version";
     $versionpackagename =~ s/[.]/DOT/g; # cannot have a . in the package name
@@ -134,7 +140,13 @@ sub retrieve
         };
 
         if ($@) {
-            return {}, "$err_prefix no API data or client module";
+            my $msg = "$err_prefix no API data or client module";
+            if ($@ !~ m/^can.*locate.*in.*INC/i) {
+                # if you can't locate the module, it's probably ok no to mention it
+                # but anything else (eg syntax error) should be reported
+                $msg .= " (client module load failed: $@)"
+            }
+            return {}, $msg;
         } else {
             # Retrieve the function in the package
             no strict 'refs';

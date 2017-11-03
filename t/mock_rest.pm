@@ -5,7 +5,8 @@ use warnings;
 
 use base 'Exporter';
 our @EXPORT = qw(load_mock_rest_data
-    reset_method_history find_method_history method_history_ok
+    dump_method_history reset_method_history
+    find_method_history method_history_ok
     );
 
 use Test::More;
@@ -332,6 +333,17 @@ $rc->mock('responseHeader', sub {
     die "mock_rest responseHeader: no header" if ! defined($hdr);
     return $self->{headers}->{$hdr};
 });
+
+=item dump_method_history
+
+diag explain the history
+
+=cut
+
+sub dump_method_history
+{
+    diag "mock_rest: current history ", explain \@method_history;
+}
 
 =item reset_method_history
 

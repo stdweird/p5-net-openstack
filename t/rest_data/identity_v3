@@ -1,0 +1,8 @@
+$cmds{users}{cmd}="GET http://controller:35357/v3/users/";
+$cmds{users}{result}={users => [
+    {name => 'existing', id => 1, description => 'existing user (managed by quattor)', email => 'e@b', enabled => 1},
+    {name => 'update', id => 2, description => 'hooba (managed by quattor)', email => 'u@b', enabled => 1},
+    {name => 'ignore', id => 3, description => 'existing user but not managed', email => 'i@b', enabled => 1},
+    {name => 'disable', id => 4, description => 'existing user to be disabled (managed by quattor)', email => 'd@b', enabled => 1},
+    {name => 'alreadydisabled', id => 5, description => 'already disabled existing (managed by quattor)', email => 'd@b', enabled => 0},
+    ]}
