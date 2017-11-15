@@ -10,6 +10,8 @@ use parent qw(
     Net::OpenStack::Client::REST
 );
 
+# ABSTRACT: OpenStack REST API client
+
 =head1 NAME
 
 Net::OpenStack::Client
@@ -28,7 +30,7 @@ For basic reporting:
     ...
     my $cl = Net::OpenStack::Client->new(
         openrc => '/home/admin/.openrc',
-        log => Log::Log4perl->new()
+        log => Log::Log4perl->get_logger()
         );
 
 For debugging, including full JSON request / repsonse and headers (so contains sensitive data!):
@@ -38,7 +40,7 @@ For debugging, including full JSON request / repsonse and headers (so contains s
     ...
     my $cl = Net::OpenStack::Client->new(
         openrc => '/home/admin/.openrc',
-        log => Log::Log4perl->new(),
+        log => Log::Log4perl->get_logger(),
         debugapi => 1
         );
 

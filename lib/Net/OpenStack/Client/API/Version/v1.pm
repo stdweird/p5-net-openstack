@@ -3,7 +3,7 @@
 # Do not modify.
 #
 
-package Net::OpenStack::API::Version::v1;
+package Net::OpenStack::Client::API::Version::v1;
 
 use strict;
 use warnings;

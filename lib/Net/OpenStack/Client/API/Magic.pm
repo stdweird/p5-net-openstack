@@ -1,4 +1,4 @@
-package Net::OpenStack::API::Magic;
+package Net::OpenStack::Client::API::Magic;
 
 use strict;
 use warnings;
@@ -101,7 +101,7 @@ sub retrieve
     my $result;
 
     if (!$apidata) {
-        my $package = "Net::OpenStack::API::${servicepackagename}::${versionpackagename}";
+        my $package = "Net::OpenStack::Client::API::${servicepackagename}::${versionpackagename}";
 
         local $@;
         eval {

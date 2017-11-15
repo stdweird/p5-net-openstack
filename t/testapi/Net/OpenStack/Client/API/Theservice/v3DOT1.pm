@@ -1,4 +1,4 @@
-package Net::OpenStack::API::Theservice::v3DOT1;
+package Net::OpenStack::Client::API::Theservice::v3DOT1;
 
 use strict;
 use warnings;

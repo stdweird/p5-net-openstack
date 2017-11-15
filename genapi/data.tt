@@ -3,7 +3,7 @@
 # Do not modify.
 #
 
-package Net::OpenStack::API::[% service %]::[% modname %];
+package Net::OpenStack::Client::API::[% service %]::[% modname %];
 
 use strict;
 use warnings;

@@ -3,7 +3,7 @@
 # Do not modify.
 #
 
-package Net::OpenStack::API::Identity::v3;
+package Net::OpenStack::Client::API::Identity::v3;
 
 use strict;
 use warnings;

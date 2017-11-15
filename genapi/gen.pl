@@ -21,7 +21,7 @@ use typedjson;
 my $debug = 1;
 
 Readonly my $GEN_API_DIR => dirname(abs_path($0));
-Readonly my $API_DIR => "$GEN_API_DIR/../lib/Net/OpenStack/API";
+Readonly my $API_DIR => "$GEN_API_DIR/../lib/Net/OpenStack/Client/API";
 
 Readonly my $SCRIPT_NAME => basename($0);
 

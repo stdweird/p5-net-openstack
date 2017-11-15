@@ -7,12 +7,12 @@ use Test::MockModule;
 use FindBin qw($Bin);
 use lib "$Bin/testapi";
 
-#use Net::OpenStack::API::Theservice::v3DOT1;
-#diag "API_DATA ", explain $Net::OpenStack::API::Theservice::v3DOT1::API_DATA;
+#use Net::OpenStack::Client::API::Theservice::v3DOT1;
+#diag "API_DATA ", explain $Net::OpenStack::Client::API::Theservice::v3DOT1::API_DATA;
 
 use JSON::XS;
 
-use Net::OpenStack::API::Magic qw(retrieve);
+use Net::OpenStack::Client::API::Magic qw(retrieve);
 
 use Readonly;
 
@@ -27,7 +27,7 @@ my $data = {
 };
 
 my $c;
-$c = Net::OpenStack::API::Magic::cache($data);
+$c = Net::OpenStack::Client::API::Magic::cache($data);
 is_deeply($c, $data, "cache returns data");
 
 =head2 retrieve
@@ -63,7 +63,7 @@ ok(! defined($err), "No error 2nd time");
 ($c, $err) = retrieve('noservice', 'certainlynomethod', 'v1.2.3');
 is_deeply($c, {}, 'unknown service retrieves undef');
 like($err,
-     qr{retrieve name certainlynomethod for service noservice version v1.2.3 failed: no API module Net::OpenStack::API::Noservice::v1DOT2DOT3:},
+     qr{retrieve name certainlynomethod for service noservice version v1.2.3 failed: no API module Net::OpenStack::Client::API::Noservice::v1DOT2DOT3:},
      "retrieve of unknown service returns error message");
 
 ($c, $err) = retrieve('theservice', 'nomethod', 'v3.1');
@@ -92,7 +92,7 @@ is_deeply($res, [qw(b c)], "call to custom_method function works");
 
 =cut
 
-my $cache = Net::OpenStack::API::Magic::flush_cache();
+my $cache = Net::OpenStack::Client::API::Magic::flush_cache();
 is_deeply($cache, {cmd=>{}, api => {}}, "returned cache has basic empty structure");
 
 my $c3;

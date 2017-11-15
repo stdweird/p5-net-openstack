@@ -6,7 +6,7 @@ use JSON::XS;
 use Test::More;
 use Test::MockModule;
 
-use Net::OpenStack::API::Convert qw(process_args); # Test import
+use Net::OpenStack::Client::API::Convert qw(process_args); # Test import
 
 use Readonly;
 
@@ -29,7 +29,7 @@ my $new_data = {};
 foreach my $key (keys %$data) {
     my $type = $key;
     $type =~ s/_\w+$//;
-    $new_data->{$key} = Net::OpenStack::API::Convert::convert($data->{$key}, $type);
+    $new_data->{$key} = Net::OpenStack::Client::API::Convert::convert($data->{$key}, $type);
 };
 
 # Convert it in to non-pretty JSON string
@@ -42,14 +42,14 @@ is($j->encode($new_data),
 my $value;
 local $@;
 eval {
-    $value = Net::OpenStack::API::Convert::convert('a', 'long');
+    $value = Net::OpenStack::Client::API::Convert::convert('a', 'long');
 };
 
 like("$@", qr{^Argument "a" isn't numeric in addition}, "convert dies string->long");
 ok(! defined($value), "value undefined on died convert string->long");
 
 eval {
-    $value = Net::OpenStack::API::Convert::convert('a', 'double');
+    $value = Net::OpenStack::Client::API::Convert::convert('a', 'double');
 };
 
 like("$@", qr{^Argument "a" isn't numeric in multiplication}, "convert dies string->double");
@@ -64,7 +64,7 @@ sub ct
     my ($cmd, $value, $where, $iserr, $exp, $msg) = @_;
     my $orig;
     $orig = $j->encode($where) if ref($where);
-    my $err = Net::OpenStack::API::Convert::check_option($cmd, $value, $where);
+    my $err = Net::OpenStack::Client::API::Convert::check_option($cmd, $value, $where);
     if ($iserr) {
         like($err, qr{$exp}, "error occurred $msg");
         is($j->encode($where), $orig, "where unmodified $msg") if ref($where);

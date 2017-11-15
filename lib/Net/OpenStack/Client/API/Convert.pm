@@ -1,4 +1,4 @@
-package Net::OpenStack::API::Convert;
+package Net::OpenStack::Client::API::Convert;
 
 use strict;
 use warnings qw(FATAL numeric);
@@ -30,7 +30,7 @@ Readonly my $API_REST_OPTION_PATTERN => '^__';
 
 =head1 NAME
 
-Net::OpenStack::API::Convert provides type conversion for Net::OpenStack
+Net::OpenStack::Client::API::Convert provides type conversion for Net::OpenStack
 
 =head2 Public functions
 

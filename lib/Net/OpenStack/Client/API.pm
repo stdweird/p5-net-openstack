@@ -3,8 +3,8 @@ package Net::OpenStack::Client::API;
 use strict;
 use warnings;
 
-use Net::OpenStack::API::Convert qw(process_args);
-use Net::OpenStack::API::Magic qw(retrieve);
+use Net::OpenStack::Client::API::Convert qw(process_args);
+use Net::OpenStack::Client::API::Magic qw(retrieve);
 
 our $AUTOLOAD;
 
