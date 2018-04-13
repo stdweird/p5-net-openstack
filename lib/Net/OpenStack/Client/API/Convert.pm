@@ -11,7 +11,7 @@ use Readonly;
 
 use base qw(Exporter);
 
-our @EXPORT_OK = qw(process_args);
+our @EXPORT_OK = qw(convert process_args);
 
 # Convert dispatch table
 Readonly::Hash my %CONVERT_DISPATCH => {

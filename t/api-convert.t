@@ -6,7 +6,7 @@ use JSON::XS;
 use Test::More;
 use Test::MockModule;
 
-use Net::OpenStack::Client::API::Convert qw(process_args); # Test import
+use Net::OpenStack::Client::API::Convert qw(process_args convert); # Test import
 
 use Readonly;
 
@@ -29,7 +29,7 @@ my $new_data = {};
 foreach my $key (keys %$data) {
     my $type = $key;
     $type =~ s/_\w+$//;
-    $new_data->{$key} = Net::OpenStack::Client::API::Convert::convert($data->{$key}, $type);
+    $new_data->{$key} = convert($data->{$key}, $type);
 };
 
 # Convert it in to non-pretty JSON string
@@ -42,14 +42,14 @@ is($j->encode($new_data),
 my $value;
 local $@;
 eval {
-    $value = Net::OpenStack::Client::API::Convert::convert('a', 'long');
+    $value = convert('a', 'long');
 };
 
 like("$@", qr{^Argument "a" isn't numeric in addition}, "convert dies string->long");
 ok(! defined($value), "value undefined on died convert string->long");
 
 eval {
-    $value = Net::OpenStack::Client::API::Convert::convert('a', 'double');
+    $value = convert('a', 'double');
 };
 
 like("$@", qr{^Argument "a" isn't numeric in multiplication}, "convert dies string->double");

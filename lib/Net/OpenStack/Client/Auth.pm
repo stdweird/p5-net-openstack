@@ -24,8 +24,8 @@ sub _parse_openrc
     if (open(my $fh, $fn)) {
         while (<$fh>) {
             chomp;
-            if (m/^\s*(?:export\s+)(\w+)\s*=\s*(?:'|")?(.+)(?:'|")?\s*$/) {
-                $res->{$1} = $2;
+            if (m/^\s*(?:export\s+)(\w+)\s*=\s*(['"]?)(.+)\2\s*$/) {
+                $res->{$1} = $3;
             }
         }
         close($fh);
@@ -87,9 +87,9 @@ sub login
 {
     my ($self, %opts) = @_;
 
-    my $resp;
     if ($opts{openrc}) {
-        my $openrc = $self->_parse_openrc($opts{openrc});
+        my $openrc = $self->_parse_openrc($opts{openrc})
+            or return;
 
         my $os = sub {return $self->get_openrc(shift, $openrc)};
 
@@ -97,7 +97,7 @@ sub login
         $self->{versions}->{identity} = $version;
         if ($self->{versions}->{identity} == 3) {
             $self->{services}->{identity} = &$os('auth_url');
-            $resp = $self->api_identity_tokens(
+            my $resp = $self->api_identity_tokens(
                 methods => ['password'],
                 user_name => &$os('username'),
                 user_domain_name => &$os('project_domain_name'),

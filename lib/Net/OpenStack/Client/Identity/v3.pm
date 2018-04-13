@@ -7,12 +7,89 @@ use Set::Scalar;
 use Readonly;
 
 use Net::OpenStack::Client::Request qw(mkrequest);
+use Net::OpenStack::Client::API::Convert qw(convert);
 
-Readonly my @SUPPORTED_OPERATIONS => qw(
-    user group
-    service endpoint
-    project domain
-    );
+# This list is ordered:
+#  Configuration of n-th item does not require
+#  configuration of any items after that
+Readonly our @SUPPORTED_OPERATIONS => qw(
+    region
+    domain
+    project
+    user
+    role
+    group
+    service
+    endpoint
+);
+
+Readonly my %PARENT_ATTR => {
+    region => 'parent_region_id',
+    project => 'parent_id',
+};
+
+=head1 Functions
+
+=over
+
+=item sort_parent
+
+Sort according to parent attribute.
+
+=cut
+
+# Use toposort?
+# see https://rosettacode.org/wiki/Topological_sort#Perl
+
+sub sort_parent
+{
+    # We assume that an empty string or number 0 is not a valid/used region name
+    # force strings, so we can do eq tests
+    my $ra = $a->{name};
+    my $rb = $b->{name};
+    my $pra = $a->{parent} || '';
+    my $prb = $b->{parent} || '';
+
+    my $res;
+    if ($pra eq $rb) {
+        # b is parent of a: order b a
+        $res = 1;
+    } elsif ($prb eq $ra) {
+        # a is parent of b: order a b
+        $res = -1;
+    } elsif ($pra && !$prb) {
+        # a has parent, b does not: order b a
+        $res = 1;
+    } elsif ($prb && !$pra) {
+        # b has parent, a does not: order a b
+        $res = -1;
+    } else {
+        # does not matter, use alphabetical sort
+        $res = $ra cmp $rb;
+    }
+
+    return $res;
+}
+
+=item sort_parents
+
+Sort arrayref of C<names> with data from C<items> using parent C<attr>.
+
+=cut
+
+sub sort_parents
+{
+    my ($names, $items, $attr) = @_;
+
+    # Assume the id is equal to the name of the region
+    my @snames = sort sort_parent (map {{name => $_, parent => $items->{$_}->{$attr}}} @$names);
+    return map {$_->{name}} @snames;
+}
+
+
+=pod
+
+=back
 
 =head1 Methods
 
@@ -83,8 +160,10 @@ sub sync
     # GET the list
     my $resp_list = &$rest('GET', result => "/${operation}s");
 
+    my $nameattr = $operation eq 'region' ? 'id' : 'name';
+
     my $found = {
-        map {$_->{name} => $_}
+        map {$_->{$nameattr} => $_}
         grep {$opts{filter} ? $opts{filter}->($_) : 1}
         @{$resp_list->result || []}
     };
@@ -94,18 +173,24 @@ sub sync
 
     # Add default enabled=1 to all wanted operation
     foreach my $want (@$wanted) {
-        $items->{$want}->{enabled} = 1 if ! exists($items->{$want}->{enabled});
+        $items->{$want}->{enabled} = convert(1, 'boolean') if ! exists($items->{$want}->{enabled});
     };
 
     # compare
 
     my @tocreate = sort @{$wanted - $existing};
+
+    # regions and projects can have parent relations, so they need to be sorted accordingly
+    # we only expect this to be important with creation, not for updates or deletes
+    my $parentattr = $PARENT_ATTR{$operation};
+    @tocreate = sort_parents(\@tocreate, $items, $parentattr) if $parentattr;
+
     if (@tocreate) {
         $self->info("Creating ${operation}s: @tocreate");
         foreach my $name (@tocreate) {
             # POST to create
             my $new = $items->{$name};
-            $new->{name} = $name;
+            $new->{$nameattr} = $name;
             my $resp = &$rest('POST', data => $new);
         }
     } else {
@@ -159,6 +244,8 @@ sub sync
     } else {
         $self->debug("No existing ${operation}s to ${dowhat}e");
     }
+
+    return 1;
 }
 
 =pod

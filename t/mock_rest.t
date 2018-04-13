@@ -1,3 +1,7 @@
+# Original file from Net::OpenStack::Client
+# Keep in sync when using in other repo
+
+
 use strict;
 use warnings;
 
