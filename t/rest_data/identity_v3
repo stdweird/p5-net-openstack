@@ -16,9 +16,24 @@ $cmds{users_update}{result}={user => {id => 2}};
 $cmds{users_delete}{cmd}="PATCH http://controller:35357/v3/users/4";
 $cmds{users_delete}{result}={user => {id => 4}};
 
+$cmds{regions}{cmd}="GET http://controller:35357/v3/regions/";
+$cmds{regions}{result}={regions => [
+    {id => 'toremove', enabled => 1},
+    {id => 'toignore', enabled => 1}, # no tag
+    ]};
 $cmds{region1}{cmd}="POST http://controller:35357/v3/regions/ .*\"id\":\"regone.*";
 $cmds{region1}{result}={region => {id => 'regone'}};
 $cmds{region2}{cmd}="POST http://controller:35357/v3/regions/ .*regtwo.*";
 $cmds{region2}{result}={region => {id => 'regtwo'}};
 $cmds{region2b}{cmd}="POST http://controller:35357/v3/regions/ .*a2nd.*";
 $cmds{region2b}{result}={region => {id => 'a2nd'}};
+$cmds{region_delete}{cmd}="PATCH http://controller:35357/v3/regions/toremove";
+$cmds{region_delete}{result}={region => {id => 'toremove'}};
+
+$cmds{mainprojid}{cmd}="GET http://controller:35357/v3/projects[?]name=hoopla";
+$cmds{mainprojid}{result}={projects => [{id => 2}]};
+
+$cmds{existingchildproj}{cmd}="GET http://controller:35357/v3/projects[?]parent_id=2";
+$cmds{existingchildproj}{result}={projects => [
+    {id => 10, name => "hoopla_4", tags => ['toremove']},
+    ]};

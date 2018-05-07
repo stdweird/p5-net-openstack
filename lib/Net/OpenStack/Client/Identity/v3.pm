@@ -139,7 +139,7 @@ sub get_id
 
     my $id;
     if ($resp) {
-        my @ids = (map {$_->{id}} @{$resp->result});
+        my @ids = (map {$_->{id}} @{$resp->result || []});
         my $msg = "ID found for $operation with name $name";
         if (scalar @ids > 1) {
             # what? do not return anything
@@ -219,10 +219,16 @@ sub sync
     if ($opts{tagstore}) {
         my $tagstore_proj = $opts{tagstore};
         if (!$_tagstores->{$tagstore_proj}) {
-            $_tagstores->{$tagstore_proj} = Net::OpenStack::Client::Identity::Tagstore->new(
+            my $tgst = Net::OpenStack::Client::Identity::Tagstore->new(
                 $self,
                 $tagstore_proj,
                 );
+            if ($tgst) {
+                $_tagstores->{$tagstore_proj} = $tgst;
+            } else {
+                $self->error("sync: failed to create new tagstore for project $tagstore_proj");
+                return;
+            }
         }
         $tagstore = $_tagstores->{$tagstore_proj};
     }
@@ -402,10 +408,14 @@ sub remove
                 } else {
                     # PATCH to disable
                     # do not disable if already disabled
-                    $resp = $self->api_identity_rest('PATCH', $operation,
-                                                     what => $found->{$name}->{id},
-                                                     data => {enabled => convert(0, 'boolean')})
-                        if $found->{$name}->{enabled};
+                    if ($found->{$name}->{enabled}) {
+                        $resp = $self->api_identity_rest('PATCH', $operation,
+                                                         what => $found->{$name}->{id},
+                                                         data => {enabled => convert(0, 'boolean')});
+                    } else {
+                        $self->debug("Not disabling already disabled ".
+                                     "$operation $name (id ".$found->{$name}->{id}.")");
+                    }
                 }
                 push(@{$res->{delete}}, $resp->result("/$operation")) if defined($resp);
             }

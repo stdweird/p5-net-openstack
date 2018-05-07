@@ -76,7 +76,7 @@ Add project
 
 =back
 
-
+Result path is set to JSON path /project
 
 =back
 
@@ -259,43 +259,6 @@ Result path is set to JSON path /domains
 
 
 
-=item get_tags
-
-API method get_tags
-
-Get all tags for project
-
-=over
-
-=item Required url / endpoint templates
-
-=over
-
-=item project_id
-
-=back
-
-
-=item No optional url / endpoint parameters
-
-=item Options
-
-=over
-
-=item raw: hashref used for JSON body, ignoring all options (except the url/endpoint templates)
-
-=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
-
-=back
-
-Result path is set to JSON path /tags
-
-=back
-
-=cut
-
-
-
 =item project
 
 API method project
@@ -369,6 +332,82 @@ Get all projects
 =back
 
 Result path is set to JSON path /projects
+
+=back
+
+=cut
+
+
+
+=item tag
+
+API method tag
+
+Get a tag for project
+
+=over
+
+=item Required url / endpoint templates
+
+=over
+
+=item project_id
+
+=item tag
+
+=back
+
+
+=item No optional url / endpoint parameters
+
+=item Options
+
+=over
+
+=item raw: hashref used for JSON body, ignoring all options (except the url/endpoint templates)
+
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
+
+=back
+
+
+
+=back
+
+=cut
+
+
+
+=item tags
+
+API method tags
+
+Get all tags for project
+
+=over
+
+=item Required url / endpoint templates
+
+=over
+
+=item project_id
+
+=back
+
+
+=item No optional url / endpoint parameters
+
+=item Options
+
+=over
+
+=item raw: hashref used for JSON body, ignoring all options (except the url/endpoint templates)
+
+=item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
+
+=back
+
+Result path is set to JSON path /tags
 
 =back
 

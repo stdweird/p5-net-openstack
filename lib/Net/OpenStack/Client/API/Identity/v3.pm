@@ -30,7 +30,7 @@ Readonly our $API_DATA => {
     
     add_project => {
         method => 'POST',
-        endpoint => '/domains',
+        endpoint => '/projects',
         
         
         options => {    
@@ -40,6 +40,7 @@ Readonly our $API_DATA => {
             'name' => {'path' => ['project','name'],'type' => 'string'},
             'parent_id' => {'path' => ['project','parent_id'],'type' => 'string'},
         },
+        result => '/project',
     
     },
     
@@ -99,18 +100,6 @@ Readonly our $API_DATA => {
     
     },
     
-    get_tags => {
-        method => 'GET',
-        endpoint => '/project/{project_id}/tags',
-        templates => ['project_id'],
-        
-        
-        options => {    
-        },
-        result => '/tags',
-    
-    },
-    
     project => {
         method => 'GET',
         endpoint => '/projects/{project_id}',
@@ -125,13 +114,36 @@ Readonly our $API_DATA => {
     
     projects => {
         method => 'GET',
-        endpoint => '/projects',
+        endpoint => '/projects?domain_id=did&enabled=1&name=name&parent_id=pid',
         
         parameters => ['domain_id','enabled','name','parent_id'],
         
         options => {    
         },
         result => '/projects',
+    
+    },
+    
+    tag => {
+        method => 'GET',
+        endpoint => '/project/{project_id}/tag/{tag}',
+        templates => ['project_id','tag'],
+        
+        
+        options => {    
+        },
+    
+    },
+    
+    tags => {
+        method => 'GET',
+        endpoint => '/project/{project_id}/tags',
+        templates => ['project_id'],
+        
+        
+        options => {    
+        },
+        result => '/tags',
     
     },
     

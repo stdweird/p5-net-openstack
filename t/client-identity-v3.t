@@ -14,6 +14,9 @@ use Net::OpenStack::Client;
 use mock_rest qw(identity_v3);
 use logger;
 
+=head1 init
+
+=cut
 
 use Net::OpenStack::Client::Identity::v3;
 is_deeply(\@Net::OpenStack::Client::Identity::v3::SUPPORTED_OPERATIONS,
@@ -43,7 +46,9 @@ ok(-f $openrcfn, "example openrc file exists");
 
 my $cl = Net::OpenStack::Client->new(log => logger->new(), debugapi => 1, openrc => $openrcfn);
 
-# get_id
+=head1 get_id
+
+=cut
 
 reset_method_history();
 my $id = $cl->api_identity_get_id('user', 'existing');
@@ -51,7 +56,9 @@ dump_method_history;
 ok(method_history_ok(['GET .*/users\?name=existing ']), "get_id uses name parameter");
 is($id, 2, "get_id returns id");
 
-# sync
+=head1 sync with filter
+
+=cut
 
 reset_method_history();
 $res = $cl->api_identity_sync('user', {
@@ -81,6 +88,11 @@ ok(method_history_ok(
        ]),
    "users created/updated/disabled; nothing done for certain existing users");
 
+=head1 sync with tagstore
+
+=cut
+
+
 reset_method_history();
 $res = $cl->api_identity_sync('region', {
     regone => {},
@@ -91,19 +103,27 @@ diag "region result ", explain $res;
 is_deeply($res, {
     create => [{id => 'regone'}, {id => 'regtwo'}, {id => 'a2nd'}],
     update => [],
-    delete => [],
+    delete => [{id => 'toremove'}],
 }, "region sync ok");
 
 dump_method_history;
 ok(method_history_ok(
        [
+        'GET http://controller:35357/v3/projects[?]name=hoopla ',
         'GET .*/regions/',
+        'GET http://controller:35357/v3/projects[?]parent_id=2 ',
         'POST .*/regions/ .*enabled":true.*"id":"regone',
         'POST .*/regions/ .*"id":"regtwo',
         'POST .*/regions/ .*"id":"a2nd".*parent_region_id":"regone"',
+        'PUT http://controller:35357/v3/project/10/tag/regone \{\} ',
+        'PUT http://controller:35357/v3/project/10/tag/regtwo \{\} ',
+        'PUT http://controller:35357/v3/project/10/tag/a2nd \{\} ',
+        'PATCH http://controller:35357/v3/regions/toremove .*"enabled":false.* ',
+        'DELETE http://controller:35357/v3/project/10/tag/toremove ',
        ], [
         'POST .*/regions/ .*"parent"',
        ]),
    "regions created in order");
+
 
 done_testing;

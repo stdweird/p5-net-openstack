@@ -65,7 +65,7 @@ sub make_module
 
         # get templates from endpoint / url
         my ($endpoint, $templates, $params) = parse_endpoint($mcfg->{url});
-        $mcfg->{url} = $endpoint;
+        $mcfg->{hrendpoint} = $endpoint;
         $mcfg->{templates} = $templates if @$templates;
         push(@known, @$templates);
         $mcfg->{parameters} = $params if @$params;
