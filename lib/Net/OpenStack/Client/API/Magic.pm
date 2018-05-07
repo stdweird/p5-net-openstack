@@ -203,7 +203,7 @@ sub retrieve
 
         $result->{result} = $data->{result} if defined($data->{result});
 
-        foreach my $k (qw(templates options)) {
+        foreach my $k (qw(templates parameters options)) {
             $result->{$k} = $data->{$k} if exists($data->{$k});
         }
     }

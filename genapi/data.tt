@@ -23,6 +23,9 @@ endpoint => '[%          method.value.url %]',
 [%                  IF method.value.templates.defined -%]
 templates => [%         sdump(method.value.templates) %],
 [%                  END %]
+[%                  IF method.value.parameters.defined -%]
+parameters => [%        sdump(method.value.parameters) %],
+[%                  END %]
 [%                  IF method.value.options.defined -%]
 options => {
 [%-                     FILTER indent -%]

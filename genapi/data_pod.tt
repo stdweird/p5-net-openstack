@@ -20,6 +20,19 @@ Required url / endpoint templates
 No required url / endpoint templates
 [%- END %]
 
+=item [% -%]
+[%- IF details.parameters.defined -%]
+Optional url / endpoint parameters
+
+=over
+[%      FOREACH param IN details.parameters %]
+=item [% param %]
+[%      END %]
+=back
+[% ELSE -%]
+No optional url / endpoint parameters
+[%- END %]
+
 =item Options
 
 =over

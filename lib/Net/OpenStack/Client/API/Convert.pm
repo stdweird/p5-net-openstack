@@ -143,6 +143,8 @@ Command hashref
 
 =item templates (optional)
 
+=item parameters (optional)
+
 =item options (optional)
 
 (All options starting with C<__> are passed as options to
@@ -156,7 +158,9 @@ Request instance:
 
 =item error: an error message in case of failure
 
-=item tpls: arrayref with templates for endpoint
+=item tpls: hashref with templates for endpoint
+
+=item params: hashref with parameters for endpoint
 
 =item opts: hashref with options
 
@@ -174,6 +178,8 @@ sub process_args
 
     # template name and value
     my $templates = {};
+    # parameters name and value
+    my $parameters = {};
     # option name and value
     my $options = {};
     # option name and path (separate from option values)
@@ -193,18 +199,25 @@ sub process_args
 
     my %origopts = @args;
 
+    my $raw = delete $origopts{raw};
+    if ($raw && ref($raw) ne 'HASH') {
+        return &$err_req("raw option must be a hashref, got ".ref($raw));
+    }
+
     # Check endpoint template values; sort of mandatory special named options
     # The processed options are removed from %origopts
-    # TODO: naming conflict between JSON key and template name?
+    # TODO: naming conflict between JSON key, parameter and template name? (handled in gen.pl)
     foreach my $name (@{$cmdhs->{templates} || []}) {
         # all strings, used for templating
         $errmsg = check_option({name => $name, required => 1, type => 'str'}, delete $origopts{$name}, $templates);
         return &$err_req("endpoint template $name") if $errmsg;
     }
 
-    my $raw = delete $origopts{raw};
-    if ($raw && ref($raw) ne 'HASH') {
-        return &$err_req("raw option must be a hashref, got ".ref($raw));
+    # Check parameters
+    foreach my $name (@{$cmdhs->{parameters} || []}) {
+        # all strings, used for url buildup
+        $errmsg = check_option({name => $name, type => 'str'}, delete $origopts{$name}, $parameters);
+        return &$err_req("endpoint parameter $name") if $errmsg;
     }
 
     # Check options
@@ -237,6 +250,7 @@ sub process_args
         $endpoint,
         $method,
         tpls => $templates,
+        params => $parameters,
         opts => $options,
         paths => $paths,
         rest => $rest,

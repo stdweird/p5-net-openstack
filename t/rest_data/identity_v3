@@ -1,3 +1,6 @@
+$cmds{userid}{cmd}="GET http://controller:35357/v3/users[?]name=existing";
+$cmds{userid}{result}={users => [{id => 2}]};
+
 $cmds{users}{cmd}="GET http://controller:35357/v3/users/";
 $cmds{users}{result}={users => [
     {name => 'existing', id => 1, description => 'existing user (managed by quattor)', email => 'e@b', enabled => 1},
@@ -5,4 +8,17 @@ $cmds{users}{result}={users => [
     {name => 'ignore', id => 3, description => 'existing user but not managed', email => 'i@b', enabled => 1},
     {name => 'disable', id => 4, description => 'existing user to be disabled (managed by quattor)', email => 'd@b', enabled => 1},
     {name => 'alreadydisabled', id => 5, description => 'already disabled existing (managed by quattor)', email => 'd@b', enabled => 0},
-    ]}
+    ]};
+$cmds{users_create}{cmd}="POST http://controller:35357/v3/users/ .*anewuser.*";
+$cmds{users_create}{result}={user => {id => 123}};
+$cmds{users_update}{cmd}="PATCH http://controller:35357/v3/users/2";
+$cmds{users_update}{result}={user => {id => 2}};
+$cmds{users_delete}{cmd}="PATCH http://controller:35357/v3/users/4";
+$cmds{users_delete}{result}={user => {id => 4}};
+
+$cmds{region1}{cmd}="POST http://controller:35357/v3/regions/ .*\"id\":\"regone.*";
+$cmds{region1}{result}={region => {id => 'regone'}};
+$cmds{region2}{cmd}="POST http://controller:35357/v3/regions/ .*regtwo.*";
+$cmds{region2}{result}={region => {id => 'regtwo'}};
+$cmds{region2b}{cmd}="POST http://controller:35357/v3/regions/ .*a2nd.*";
+$cmds{region2b}{result}={region => {id => 'a2nd'}};

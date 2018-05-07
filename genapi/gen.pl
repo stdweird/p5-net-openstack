@@ -7,6 +7,7 @@ use Cwd qw(abs_path);
 use File::Basename qw(basename dirname);
 
 BEGIN {
+    unshift(@INC, dirname(abs_path($0)));
     unshift(@INC, dirname(abs_path($0)).'/../lib');
 };
 
@@ -57,12 +58,24 @@ sub make_module
 
     my $err_prefix = "service $service version $version";
 
+    # ensure unique option names
     foreach my $method (sort keys %$config) {
+        my @known;
         my $mcfg = $config->{$method};
 
         # get templates from endpoint / url
-        my $templates = parse_endpoint($mcfg->{url});
+        my ($endpoint, $templates, $params) = parse_endpoint($mcfg->{url});
+        $mcfg->{url} = $endpoint;
         $mcfg->{templates} = $templates if @$templates;
+        push(@known, @$templates);
+        $mcfg->{parameters} = $params if @$params;
+        foreach my $kn (@$params) {
+            if (grep {$_ eq $kn} @known) {
+                die "$err_prefix parameter name $kn is already known (@known)";
+            } else {
+                push(@known, $kn);
+            }
+        }
 
         if (!grep {$_ eq $mcfg->{method}} @SUPPORTED_METHODS) {
             die "$err_prefix method $method $mcfg->{method} is not supported";
@@ -75,6 +88,13 @@ sub make_module
             die "$err_prefix data should contain JSON for options for method $method $mcfg->{method}";
         }
         $mcfg->{options} = process_json($json, $templates) if $json;
+        foreach my $kn (sort keys %{$mcfg->{options}}) {
+            if (grep {$_ eq $kn} @known) {
+                die "$err_prefix options name $kn is already known @known";
+            } else {
+                push(@known, $kn);
+            }
+        }
     }
 
     my $vars = {

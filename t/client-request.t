@@ -45,10 +45,11 @@ ok(! defined($r->{id}), 'No id attribute set by default');
 ok(! $r->is_error(), 'is_error false');
 ok($r, 'overloaded boolean = true if no error via is_error');
 
-$r = mkrequest('d', 'PUT', tpls => {a => 2}, opts => {a => 3, b => 4}, paths => {a => [qw(some path)], b => ['a']}, error => 'message', rest => {woo => 'hoo'}, service => 'myservice', version => 2);
+$r = mkrequest('d', 'PUT', tpls => {a => 2}, params => {x => 1}, opts => {a => 3, b => 4}, paths => {a => [qw(some path)], b => ['a']}, error => 'message', rest => {woo => 'hoo'}, service => 'myservice', version => 2);
 is($r->{endpoint}, 'd', 'endpoint set 2');
 is($r->{method}, 'PUT', 'method set 2');
-is_deeply($r->{tpls}, {a => 2}, 'array ref as tpls');
+is_deeply($r->{tpls}, {a => 2}, 'hash ref as tpls');
+is_deeply($r->{params}, {x => 1}, 'hash ref as params');
 is_deeply($r->{opts}, {a => 3, b => 4}, 'hash ref as opts');
 is_deeply($r->{paths}, {a => ['some', 'path'], b => ['a']}, 'hash ref as paths');
 is_deeply($r->{rest}, {woo => 'hoo'}, 'hash ref as rest');
@@ -68,23 +69,27 @@ is($r->{error}, "Unsupported method NOSUCHMETHOD", "error message with unsupport
 
 =cut
 
-is_deeply(parse_endpoint("/a/b/c"), [], "endpoint w/o templates");
-is_deeply(parse_endpoint("/a/{b}/c/{b}/{e}/"), [qw(b e)], "endpoint with templates");
+is_deeply([parse_endpoint("/a/b/c")], ['/a/b/c', [], []], "endpoint w/o templates");
+is_deeply([parse_endpoint("/a/{b}/c/{b}/{e}/")], ["/a/{b}/c/{b}/{e}/", [qw(b e)], []], "endpoint with templates");
+is_deeply([parse_endpoint("/a/{b}/c/{b}/{e}?a=1&b=2")], ["/a/{b}/c/{b}/{e}", [qw(b e)], [qw(a b)]], 
+          "endpoint with templates and params");
 
 my $endpt = 'd/{a}/b/{a}/c/{d}/e';
-$r = mkrequest($endpt, 'PUT', tpls => {a => 2, d => 'd'}, version => version->new('v1.2'));
-is($r->{endpoint}, $endpt, "endpoint before templating");
-is($r->endpoint, 'd/2/b/2/c/d/e', "templated endpoint");
-is($r->endpoint("my.fqdn"), 'https://my.fqdn/v1.2/d/2/b/2/c/d/e', "templated endpoint with fqdn host");
-is($r->endpoint("http://my.fqdn"), 'http://my.fqdn/v1.2/d/2/b/2/c/d/e', "templated endpoint with url host w/o version");
-is($r->endpoint("http://my.fqdn/v3.5"), 'http://my.fqdn/v3.5/d/2/b/2/c/d/e', "templated endpoint with url host w version");
-is($r->{endpoint}, $endpt, "endpoint after templating");
+my $oendpt = "$endpt?x=1&y=2&z=3";
+$r = mkrequest($oendpt, 'PUT', tpls => {a => 2, d => 'd'}, params => {v => 10, y => 123, z => 456}, version => version->new('v1.2'));
+is($r->{endpoint}, $oendpt, "endpoint before templating");
+is($r->endpoint, 'd/2/b/2/c/d/e?y=123&z=456', "templated endpoint, params added");
+is($r->endpoint("my.fqdn"), 'https://my.fqdn/v1.2/d/2/b/2/c/d/e?y=123&z=456', "templated endpoint with fqdn host");
+is($r->endpoint("http://my.fqdn"), 'http://my.fqdn/v1.2/d/2/b/2/c/d/e?y=123&z=456', "templated endpoint with url host w/o version");
+is($r->endpoint("http://my.fqdn/v3.5"), 'http://my.fqdn/v3.5/d/2/b/2/c/d/e?y=123&z=456', "templated endpoint with url host w version");
+is($r->{endpoint}, $oendpt, "endpoint after templating");
 
 delete $r->{tpls}->{d};
 ok(!defined($r->endpoint), "failed endpoint templating returns undef");
-is($r->{endpoint}, $endpt, "endpoint after failed templating");
+is($r->{endpoint}, $oendpt, "endpoint after failed templating");
 ok(!$r, "false request after failed templating");
-is($r->{error}, "Missing template d data to replace endpoint d/{a}/b/{a}/c/{d}/e", "error after failed templating");
+is($r->{error}, "Missing template d data to replace endpoint $oendpt", "error after failed templating");
+
 
 =head1 opts data
 

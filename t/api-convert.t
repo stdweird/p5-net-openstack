@@ -99,16 +99,17 @@ ct({required => 1, name => 'abc', type => 'boolean'}, 1, {xyz => 2},
 
 sub pat
 {
-    my ($res, $msg, $err, $tpls, $opts, $paths, $rest, $jres) = @_;
+    my ($res, $msg, $err, $tpls, $params, $opts, $paths, $rest, $jres) = @_;
 
     isa_ok($res, "Net::OpenStack::Client::Request", 'process_args returns Request instance');
 
     if($res) {
         ok(! $res->is_error(), "no error $msg");
         # Start with this before comparing individual values with is_deeply
-        is($jres, $j->encode([$res->{tpls}, $res->{opts}]), "json/converted values $msg");
+        is($jres, $j->encode([$res->{tpls}, $res->{params}, $res->{opts}]), "json/converted values $msg");
 
         is_deeply($res->{tpls}, $tpls, "templates $msg");
+        is_deeply($res->{params}, $params, "parameters $msg");
         is_deeply($res->{opts}, $opts, "options $msg");
         is_deeply($res->{paths}, $paths, "paths $msg");
         is_deeply($res->{rest}, $rest, "rest options $msg");
@@ -121,8 +122,9 @@ sub pat
 # Has mandatory posarg, non-mandatory option
 my $cmdhs = {
     method => 'POST',
-    endpoint => '/do_{user}_something',
+    endpoint => '/do_{user}_something?domain=1',
     templates => [qw(user)],
+    parameters => [qw(domain)],
     options => { test => {
         name => 'test',
         type => 'long',
@@ -149,9 +151,10 @@ pat(process_args($cmdhs, user => 'auser', test => 2, abc => 10),
     'invalid option',
     'option invalid name abc');
 
-pat(process_args($cmdhs, user => 'auser', test => 2, __abc => 10),
+pat(process_args($cmdhs, user => 'auser', domain => 'adomain', test => 2, __abc => 10),
     'process_args returns 4 element tuple (incl __ stripped rest opt)',
-    undef, {user => 'auser'}, {test => 2}, {test => ['some', 'path']}, {abc => 10}, '[{"user":"auser"},{"test":2}]');
+    undef, {user => 'auser'}, {domain => 'adomain'}, {test => 2},
+    {test => ['some', 'path']}, {abc => 10}, '[{"user":"auser"},{"domain":"adomain"},{"test":2}]');
 
 
 done_testing();

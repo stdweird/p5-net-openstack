@@ -24,8 +24,9 @@ Readonly our $API_DATA => {
 
     simple => {
         method => 'GET',
-        endpoint => '/simple',
+        endpoint => '/simple?a=1&b=2',
         result => 'Special',
+        parameters => ['a', 'b'],
     },
 };
 

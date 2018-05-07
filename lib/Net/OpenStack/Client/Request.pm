@@ -51,24 +51,45 @@ sub mkrequest
 
 =item parse_endpoint
 
-Parse C<endpoint> and look for templates.
+Parse C<endpoint> and look for templates and parameters.
 
-Return arrayref of template names.
+Return (possibly modified) endpoint, arrayref of template names
+and arrayref of parameter names.
+
+If C<logger> is passed, report an error and return; else die on failure.
 
 =cut
 
 sub parse_endpoint
 {
-    my ($endpoint) = @_;
+    my ($origendpoint, $logger) = @_;
+
+    # strip parameters
+    my ($endpoint, $paramtxt) = $origendpoint =~ /^([^?]+)(?:\?([^?]+))?$/;
 
     # List of key names that have to be passed
-    my @templates;
+    my (@templates, @params);
     foreach my $template ($endpoint =~ m#\{([^/]+)}#g) {
         # only add once; order is not that relevant
         push(@templates, $template) if (!grep {$_ eq $template} @templates);
     };
 
-    return \@templates;
+    foreach my $kv (split(/&/, $paramtxt || '')) {
+        if ($kv =~ m/^([^=]+)=/) {
+            push(@params, $1);
+        } else {
+            # invalid
+            my $msg = "invalid parameter kv $kv for origendpoint $origendpoint";
+            if ($logger) {
+                $logger->error($msg);
+                return;
+            } else {
+                die $msg;
+            }
+        }
+    }
+
+    return $endpoint, \@templates, \@params;
 }
 
 
@@ -115,6 +136,7 @@ sub new
         endpoint => $endpoint,
 
         tpls => $opts{tpls} || {},
+        params => $opts{params} || {},
         opts => $opts{opts} || {},
         paths => $opts{paths} || {},
         raw => $opts{raw},
@@ -143,6 +165,8 @@ sub new
 
 Parses the endpoint attribute, look for any templates, and replace them with values
 from C<tpls> attribute hashref.
+Any parameters defined in the endpoint are removed, and only those that
+are present in the C<params> attribute are readded with the values from the attribute.
 
 The data can contain more keys than what is required
 for templating, those keys and their values will be ignored.
@@ -171,10 +195,7 @@ sub endpoint
     # reset error attribute
     $self->{error} = undef;
 
-    # Do not modify the endpoint attribute
-    my $endpoint = $self->{endpoint};
-
-    my $templates = parse_endpoint($self->{endpoint});
+    my ($endpoint, $templates, $params) = parse_endpoint($self->{endpoint});
     foreach my $template (@$templates) {
         my $pattern = '\{' . $template . '\}';
         if (exists($self->{tpls}->{$template})) {
@@ -183,6 +204,18 @@ sub endpoint
             $self->{error} = "Missing template $template data to replace endpoint $self->{endpoint}";
             return;
         }
+    }
+
+    my @fparams;
+    foreach my $param (sort @$params) {
+        if (exists($self->{params}->{$param})) {
+            push(@fparams, "$param=".$self->{params}->{$param});
+        }
+    }
+
+    if (@fparams) {
+        $endpoint =~ s/\/+$//;
+        $endpoint .= '?'.join('&', @fparams);
     }
 
     if ($host) {
