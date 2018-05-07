@@ -19,10 +19,37 @@ Readonly our $API_DATA => {
         method => 'POST',
         endpoint => '/domains',
         
+        
         options => {    
             'description' => {'path' => ['domain','description'],'type' => 'string'},
             'enabled' => {'path' => ['domain','enabled'],'type' => 'boolean'},
             'name' => {'path' => ['domain','name'],'type' => 'string'},
+        },
+    
+    },
+    
+    add_project => {
+        method => 'POST',
+        endpoint => '/domains',
+        
+        
+        options => {    
+            'description' => {'path' => ['project','description'],'type' => 'string'},
+            'domain_id' => {'path' => ['project','domain_id'],'type' => 'string'},
+            'enabled' => {'path' => ['project','enabled'],'type' => 'boolean'},
+            'name' => {'path' => ['project','name'],'type' => 'string'},
+            'parent_id' => {'path' => ['project','parent_id'],'type' => 'string'},
+        },
+    
+    },
+    
+    add_tag => {
+        method => 'PUT',
+        endpoint => '/project/{project_id}/tag/{tag}',
+        templates => ['project_id','tag'],
+        
+        
+        options => {    
         },
     
     },
@@ -32,7 +59,20 @@ Readonly our $API_DATA => {
         endpoint => '/auth/catalog',
         
         
+        options => {    
+        },
         result => '/catalog',
+    
+    },
+    
+    delete_tag => {
+        method => 'DELETE',
+        endpoint => '/project/{project_id}/tag/{tag}',
+        templates => ['project_id','tag'],
+        
+        
+        options => {    
+        },
     
     },
     
@@ -42,6 +82,9 @@ Readonly our $API_DATA => {
         templates => ['domain_id'],
         
         
+        options => {    
+        },
+        result => '/domain',
     
     },
     
@@ -50,12 +93,52 @@ Readonly our $API_DATA => {
         endpoint => '/domains',
         
         
+        options => {    
+        },
+        result => '/domains',
+    
+    },
+    
+    get_tags => {
+        method => 'GET',
+        endpoint => '/project/{project_id}/tags',
+        templates => ['project_id'],
+        
+        
+        options => {    
+        },
+        result => '/tags',
+    
+    },
+    
+    project => {
+        method => 'GET',
+        endpoint => '/projects/{project_id}',
+        templates => ['project_id'],
+        
+        
+        options => {    
+        },
+        result => '/project',
+    
+    },
+    
+    projects => {
+        method => 'GET',
+        endpoint => '/projects',
+        
+        parameters => ['domain_id','enabled','name','parent_id'],
+        
+        options => {    
+        },
+        result => '/projects',
     
     },
     
     tokens => {
         method => 'POST',
         endpoint => '/auth/tokens',
+        
         
         options => {    
             'methods' => {'islist' => 1,'path' => ['auth','identity','methods'],'type' => 'string'},

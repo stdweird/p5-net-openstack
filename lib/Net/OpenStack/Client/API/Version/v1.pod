@@ -18,10 +18,13 @@ List all versions
 
 =item No required url / endpoint templates
 
+=item No optional url / endpoint parameters
+
 =item Options
 
 =over
 
+=item raw: hashref used for JSON body, ignoring all options
 
 =item All options starting with C<__> are passed as options to C<Net::OpenStack::Client::REST::rest>.
 
