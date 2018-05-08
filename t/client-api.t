@@ -7,6 +7,7 @@ BEGIN {
 }
 
 use Test::More;
+use Test::Warnings;
 use Test::MockModule;
 
 use testapi;

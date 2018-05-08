@@ -4,6 +4,7 @@ use warnings;
 use JSON::XS;
 
 use Test::More;
+use Test::Warnings;
 use Test::MockModule;
 
 use Net::OpenStack::Client::API::Convert qw(process_args convert); # Test import

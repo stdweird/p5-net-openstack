@@ -4,6 +4,7 @@ use warnings;
 use Net::OpenStack::Client::Error;
 
 use Test::More;
+use Test::Warnings;
 
 my $e;
 

@@ -7,6 +7,7 @@ use warnings;
 
 use File::Basename;
 use Test::More;
+use Test::Warnings;
 
 BEGIN {
     push(@INC, dirname(__FILE__));

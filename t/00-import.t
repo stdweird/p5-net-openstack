@@ -2,6 +2,7 @@ use strict;
 use warnings;
 
 use Test::More;
+use Test::Warnings;
 
 my @mods = qw(
     API::Convert API::Magic

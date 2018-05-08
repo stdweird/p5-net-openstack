@@ -6,6 +6,7 @@ use Net::OpenStack::Client::Request qw(mkrequest parse_endpoint @SUPPORTED_METHO
 
 use REST::Client;
 use Test::More;
+use Test::Warnings;
 use version;
 
 use File::Basename;
