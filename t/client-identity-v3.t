@@ -63,10 +63,10 @@ is($id, 2, "get_id returns id");
 
 reset_method_history();
 $res = $cl->api_identity_sync('user', {
-    anewuser => {description => 'new user', email => 'a@b'},
-    existing => {description => 'existing user (managed by quattor)', email => 'e@b'},
-    update => {description => 'to be updated (managed by quattor)', email => 'u@b'},
-}, filter => sub {my $op = shift; return ($op->{description} || '') =~ m/managed by quattor/});
+    anewuser => {description => 'new user', domain_id => 'somedomain', email => 'a@b'},
+    existing => {description => 'existing user (managed by)', email => 'e@b'},
+    update => {description => 'to be updated (managed by)', email => 'u@b'},
+}, filter => sub {my $op = shift; return ($op->{description} || '') =~ m/managed by/});
 
 diag "sync result ", explain $res;
 is_deeply($res, {
@@ -79,7 +79,7 @@ dump_method_history;
 ok(method_history_ok(
        [
         'GET .*/users/',
-        'POST .*/users/ .*enabled":true.*name":"anewuser',
+        'POST .*/users/ .*"description":"new user","domain_id":"dom123","email":"a@b","enabled":true.*name":"anewuser',
         'PATCH .*/users/2 .*description":',
         'PATCH .*/users/4 .*enabled":false',
        ],

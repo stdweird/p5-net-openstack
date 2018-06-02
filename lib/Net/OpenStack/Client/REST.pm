@@ -176,9 +176,26 @@ sub rest
     # general call is $rc->$method($url, [body if options], $headers)
 
     my $method = $req->{method};
+    my $rservice = $req->{service};
+    my $service;
+    if ($rservice) {
+        $service = $self->{services}->{$rservice};
+        if (!$service) {
+            $self->debug("REST $method request endpoint $req->{endpoint} service $rservice has no known service");
+        }
+    } else {
+        $self->debug("REST $method request endpoint $req->{endpoint} has no service");
+    }
 
     # url
-    my $url = $req->endpoint($self->{services}->{$req->{service}});
+    my $url = $req->endpoint($service);
+    if (!$url) {
+        my $msg = "REST $method request endpoint $req->{endpoint} ".
+            ($service ? "service $service" : "no service")." has no endpoint url";
+        $self->error($msg);
+        return mkresponse(error => $msg);
+    }
+
     my @args = ($url);
 
     # body if needed

@@ -14,7 +14,8 @@ Readonly my $IDREG => qr{[0-9a-z]{33}};
 
 # This list is ordered:
 #  Configuration of n-th item does not require
-#  configuration of any items after that
+#  configuration of any items after that, but
+#  might require configuration of previous ones
 Readonly our @SUPPORTED_OPERATIONS => qw(
     region
     domain
@@ -155,6 +156,12 @@ sub get_id
     return $id;
 }
 
+# Function to retrun the name attribute based on the the operation
+sub _name_attribute
+{
+    my ($operation) = @_;
+    return $operation eq 'region' ? 'id' : 'name';
+}
 
 =pod
 
@@ -249,7 +256,7 @@ sub sync
     # GET the list
     my $resp_list = $self->api_identity_rest('GET', $operation, result => "/${operation}s");
 
-    my $nameattr = $operation eq 'region' ? 'id' : 'name';
+    my $nameattr = _name_attribute($operation);
 
     my $found = {
         map {$_->{$nameattr} => $_}
@@ -270,7 +277,9 @@ sub sync
     my @tocreate = sort @{$wanted - $existing};
 
     # regions and projects can have parent relations, so they need to be sorted accordingly
-    # we only expect this to be important with creation, not for updates or deletes
+    # we only expect the order to be important with creation, not for updates or deletes
+    #   the parent attr might also be the names, not the actual ids
+    #   e.g. to support ordering not yet created parent
     my $parentattr = $PARENT_ATTR{$operation};
     @tocreate = sort_parents(\@tocreate, $items, $parentattr) if $parentattr;
 
@@ -284,7 +293,11 @@ sub sync
     # add to tagstore
     if ($tagstore) {
         foreach my $id (map {$_->{id}} @{$res->{create}}) {
-            $tagstore->add($id);
+            if (!$tagstore->add($id)) {
+                $id = '<undef>' if ! defined $id;
+                $self->error("sync $operation stopped after failure to add tag $id to tagstore");
+                return $res;
+            };
         }
     }
 
@@ -298,11 +311,62 @@ sub sync
     # remove from tagstore
     if ($tagstore) {
         foreach my $id (map {$_->{id}} @{$res->{delete}}) {
-            $tagstore->delete($id);
+            if (!$tagstore->delete($id)) {
+                $id = '<undef>' if ! defined $id;
+                $self->error("sync $operation stopped after failure to delete tag $id from tagstore");
+                return $res;
+            };
         }
     }
 
     return $res;
+}
+
+=item get_item
+
+Retrieve and augment an item with C<name> from hashref C<items>.
+
+Modification to the data
+
+=over
+
+=item name is inserted
+
+=item any named ids (either from (other) operation(s) or parenting) are resolved
+to their actual id.
+
+=back
+
+=cut
+
+sub get_item
+{
+    my ($self, $operation, $name, $items) = @_;
+
+    my $new = $items->{$name};
+    my $nameattr = _name_attribute($operation);
+    # add name
+    $new->{$nameattr} = $name;
+
+    # resolve ids
+    my %toresolve = (map {$_."_id" => $_} @SUPPORTED_OPERATIONS);
+    # resolve parent ids
+    $toresolve{$PARENT_ATTR{$operation}} = $operation if $PARENT_ATTR{$operation};
+
+    foreach my $attr (sort keys %toresolve) {
+        # no autovivification
+        next if ! exists($new->{$attr});
+
+        my $resolved = $self->api_identity_get_id($toresolve{$attr}, $new->{$attr});
+        if (defined($resolved)) {
+            $new->{$attr} = $resolved;
+        } else {
+            $self->error("Failed to resolve id for $operation name $name attr $attr with value $new->{$attr}");
+            return;
+        }
+    }
+
+    return $new;
 }
 
 =item create
@@ -323,8 +387,7 @@ sub create
         $self->info("Creating ${operation}s: @tocreate");
         foreach my $name (@tocreate) {
             # POST to create
-            my $new = $items->{$name};
-            $new->{$nameattr} = $name;
+            my $new = $self->api_identity_get_item($operation, $name, $items) or return;
             my $resp = $self->api_identity_rest('POST', $operation, data => $new);
             push(@{$res->{create}}, $resp->result("/$operation"));
         }
@@ -355,8 +418,9 @@ sub update
         foreach my $name (@checkupdate) {
             # anything to update?
             my $update;
-            foreach my $attr (sort keys %{$items->{$name}}) {
-                my $wa = $items->{$name}->{$attr};
+            my $update_data = $self->api_identity_get_item($operation, $name, $items) or return;
+            foreach my $attr (sort keys %$update_data) {
+                my $wa = $update_data ->{$attr};
                 my $fo = $found->{$name}->{$attr};
                 my $action = $attr eq 'enabled' ? ($wa xor $fo): ($wa ne $fo);
                 # hmmm, how to keep this JSON safe?

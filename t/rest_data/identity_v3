@@ -3,18 +3,23 @@ $cmds{userid}{result}={users => [{id => 2}]};
 
 $cmds{users}{cmd}="GET http://controller:35357/v3/users/";
 $cmds{users}{result}={users => [
-    {name => 'existing', id => 1, description => 'existing user (managed by quattor)', email => 'e@b', enabled => 1},
-    {name => 'update', id => 2, description => 'hooba (managed by quattor)', email => 'u@b', enabled => 1},
+    {name => 'existing', id => 1, description => 'existing user (managed by)', email => 'e@b', enabled => 1},
+    {name => 'update', id => 2, description => 'hooba (managed by)', email => 'u@b', enabled => 1},
     {name => 'ignore', id => 3, description => 'existing user but not managed', email => 'i@b', enabled => 1},
-    {name => 'disable', id => 4, description => 'existing user to be disabled (managed by quattor)', email => 'd@b', enabled => 1},
-    {name => 'alreadydisabled', id => 5, description => 'already disabled existing (managed by quattor)', email => 'd@b', enabled => 0},
+    {name => 'disable', id => 4, description => 'existing user to be disabled (managed by)', email => 'd@b', enabled => 1},
+    {name => 'alreadydisabled', id => 5, description => 'already disabled existing (managed by)', email => 'd@b', enabled => 0},
     ]};
-$cmds{users_create}{cmd}="POST http://controller:35357/v3/users/ .*anewuser.*";
+$cmds{users_create}{cmd}='POST http://controller:35357/v3/users/ .*"description":"new user","domain_id":"dom123".*?anewuser.*';
 $cmds{users_create}{result}={user => {id => 123}};
 $cmds{users_update}{cmd}="PATCH http://controller:35357/v3/users/2";
 $cmds{users_update}{result}={user => {id => 2}};
 $cmds{users_delete}{cmd}="PATCH http://controller:35357/v3/users/4";
 $cmds{users_delete}{result}={user => {id => 4}};
+
+$cmds{domains}{cmd}="GET http://controller:35357/v3/domains[?]name=somedomain";
+$cmds{domains}{result}={domains => [
+    {name => 'somedomain', id => 'dom123'}, # name should be unique
+    ]};
 
 $cmds{regions}{cmd}="GET http://controller:35357/v3/regions/";
 $cmds{regions}{result}={regions => [
