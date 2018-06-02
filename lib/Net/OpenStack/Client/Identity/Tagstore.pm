@@ -59,7 +59,7 @@ sub _initialize
     if (defined($self->{id})) {
         $self->debug("Tagstore for $project intialised (id $self->{id})");
     } else {
-        $self->error("No project id found for project $project");
+        $self->error("No tagstore project id found for project $project");
         return;
     };
 
@@ -118,7 +118,7 @@ sub fetch
                 } else {
                     # this is not really a problem, as the the counter is only used
                     # to garantee uniqueness in the naming of the child projects
-                    $self->warn("Child project of $self->{project} with name $proj->{name} ".
+                    $self->warn("Child tagstore project of $self->{project} with name $proj->{name} ".
                                 "(id $proj->{id}) does not match counter regex");
                 }
 
@@ -133,7 +133,7 @@ sub fetch
                 }
             }
         } else {
-            $self->error("Can't get all projects with parent $self->{project} (id $self->{id})");
+            $self->error("Can't get all tagstore projects with parent $self->{project} (id $self->{id})");
         }
     }
     return $self->{cache};
@@ -224,7 +224,7 @@ sub add
     # look for projectid that has tagspace left
     my $pid = shift(@{$self->{empty}});
     if (defined($pid)) {
-        $self->debug("Using first empty project id $pid");
+        $self->debug("Using first empty tagstore project id $pid");
     } else {
         my %count;
         foreach my $v (values %{$self->{cache}}) {
@@ -234,7 +234,7 @@ sub add
 
         if (@avail) {
             $pid = $avail[0];
-            $self->debug("using existing project $pid for $data");
+            $self->debug("using existing tagstore project $pid for $data");
         } else {
             # make new subproject
             my $counter = $self->{counter};
@@ -245,7 +245,7 @@ sub add
                 $pid = $resp->result->{id};
                 $self->{counter} = $counter;
             } else {
-                $self->error("Failed to create child project for counter $counter");
+                $self->error("Failed to create child tagstore project for counter $counter");
                 return;
             }
         }

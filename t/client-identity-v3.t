@@ -70,9 +70,9 @@ $res = $cl->api_identity_sync('user', {
 
 diag "sync result ", explain $res;
 is_deeply($res, {
-    create => [{id => 123}],
-    update => [{id => 2}],
-    delete => [{id => 4}],
+    create => [['anewuser', {id => 123}]],
+    update => [['update', {id => 2}]],
+    delete => [['disable', {id => 4}]],
 }, "api_identity_sync user returns success");
 
 dump_method_history;
@@ -102,9 +102,9 @@ $res = $cl->api_identity_sync('region', {
 
 diag "region result ", explain $res;
 is_deeply($res, {
-    create => [{id => 'regone'}, {id => 'regtwo'}, {id => 'a2nd'}],
+    create => [['regone', {id => 'regone'}], ['regtwo', {id => 'regtwo'}], ['a2nd', {id => 'a2nd'}]],
     update => [],
-    delete => [{id => 'toremove'}],
+    delete => [['toremove', {id => 'toremove'}]],
 }, "region sync ok");
 
 dump_method_history;
