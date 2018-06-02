@@ -63,6 +63,14 @@ ok(!defined($ts->{cache}), "cache undef after flush 2");
 $ts->fetch();
 is_deeply($ts->{cache}, $exp_cache, "cache after fetch 2");
 
+=item _sane_data
+
+=cut
+
+ok(!defined($ts->_sane_data('some message', undef)), "undef is not sane");
+ok(!defined($ts->_sane_data('some message', {a=>0})), "non-scalar is not sane");
+ok($ts->_sane_data('some message', 123), "scalar is sane");
+
 =item add
 
 =cut
@@ -90,6 +98,20 @@ is_deeply($ts->get(), {%$exp_cache, atag => 5, atag2 => 9}, "get w/o tag returns
 $ts->delete('atag');
 ok(!exists($ts->{cache}->{atag}), "tag removed from cache");
 
+=item empty tag subproject
+
+=cut
+
+my $tse = Net::OpenStack::Client::Identity::Tagstore->new($cl, "tagprojectempty");
+$tse->fetch();
+is_deeply($tse->{empty}, [11113], "one empty subproject");
+ok($tse->delete(1));
+is_deeply($tse->{empty}, [11113, 11112], "new empty subproject added");
+ok($tse->add('atagempty'));
+is_deeply($tse->{empty}, [11112], "used first empty subproject to add tag");
+
+diag explain $tse;
+
 =item history
 
 =cut
@@ -104,7 +126,12 @@ ok(method_history_ok(
         'POST http://controller:35357/v3/projects .*"name":"tagprojectid_6","parent_id":"2".* ',
         'PUT http://controller:35357/v3/project/9/tag/atag2 \{\} ',
         'DELETE http://controller:35357/v3/project/5/tag/atag ',
+        'GET http://controller:35357/v3/projects[?]name=tagprojectempty ',
+        'GET http://controller:35357/v3/projects[?]parent_id=11111 ',
+        'DELETE http://controller:35357/v3/project/11112/tag/1 ',
+        'PUT http://controller:35357/v3/project/11113/tag/atagempty \{\} ',
        ]), "tagstore history ok");
+
 
 =pod
 

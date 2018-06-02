@@ -51,6 +51,7 @@ sub _initialize
     $self->{log} = $client;
 
     $self->{cache} = undef;
+    $self->{empty} = []; # list of empty child projects (they are not in the tag cache)
     $self->{counter} = undef; # counter of last child project
     $self->{client} = $client;
     $self->{project} = $project;
@@ -121,8 +122,14 @@ sub fetch
                                 "(id $proj->{id}) does not match counter regex");
                 }
 
-                foreach my $tag (@{$proj->{tags} || []}) {
-                    $self->{cache}->{$tag} = $proj->{id};
+                my @tags = @{$proj->{tags} || []};
+                if (@tags) {
+                    foreach my $tag (@tags) {
+                        $self->{cache}->{$tag} = $proj->{id};
+                    }
+                } else {
+                    # handle empty projects
+                    push(@{$self->{empty}}, $proj->{id});
                 }
             }
         } else {
@@ -170,39 +177,77 @@ sub get
     };
 }
 
+=item _sane_data
+
+Sanity check on tag data to add/delete.
+
+Returns 1 on success, undef on failure (and reports an error).
+
+=cut
+
+sub _sane_data
+{
+    my ($self, $method, $data) = @_;
+
+    my $txt = "No sane tag data to $method:";
+    if (!defined($data)) {
+        $self->error("$txt undefined value");
+        return;
+    }
+
+    my $ref = ref($data);
+    if ($ref ne '') {
+        $self->error("$txt only scalar allowed, got $ref.");
+        return;
+    }
+
+    return 1;
+}
+
 =item add
 
 Add element (to store and cache).
+
+Returns 1 on success; undef on failure (and reports an error).
 
 =cut
 
 sub add
 {
     my ($self, $data) = @_;
+
+    # reports an error
+    $self->_sane_data('add', $data) or return;
+
     $self->fetch();
 
     # look for projectid that has tagspace left
-    my %count;
-    foreach my $v (values %{$self->{cache}}) {
-         $count{$v}++;
-    };
-    my @avail = grep {$count{$_} < $MAXTAGS} sort keys %count;
-
-    my $pid;
-    if (@avail) {
-        $pid = $avail[0];
-        $self->debug("using existing project $pid for $data");
+    my $pid = shift(@{$self->{empty}});
+    if (defined($pid)) {
+        $self->debug("Using first empty project id $pid");
     } else {
-        # make new subproject
-        my $counter = $self->{counter};
-        $counter++; # used counter is never 0
+        my %count;
+        foreach my $v (values %{$self->{cache}}) {
+            $count{$v}++;
+        };
+        my @avail = (grep {$count{$_} < $MAXTAGS} sort keys %count);
 
-        my $resp = $self->{client}->api_identity_add_project(name => "$self->{project}_$counter", parent_id => $self->{id});
-        if ($resp && $resp->result) {
-            $pid = $resp->result->{id};
-            $self->{counter} = $counter;
+        if (@avail) {
+            $pid = $avail[0];
+            $self->debug("using existing project $pid for $data");
         } else {
-            $self->error("Failed to create child project for counter $counter");
+            # make new subproject
+            my $counter = $self->{counter};
+            $counter++; # used counter is never 0
+
+            my $resp = $self->{client}->api_identity_add_project(name => "$self->{project}_$counter", parent_id => $self->{id});
+            if ($resp && $resp->result) {
+                $pid = $resp->result->{id};
+                $self->{counter} = $counter;
+            } else {
+                $self->error("Failed to create child project for counter $counter");
+                return;
+            }
         }
     }
 
@@ -211,21 +256,30 @@ sub add
     if ($resp) {
         # add tag to cache
         $self->{cache}->{$data} = $pid;
-        $self->debug("added $data to tagstore");
+        $self->debug("Added $data to tagstore");
     } else {
         $self->error("Failed to add $data to tagstore (project child id $pid)");
+        return;
     }
+
+    return 1;
 }
 
 =item delete
 
 Delete item (from store and cache) if it exists in the cache.
 
+Returns 1 on success (incl. when the data was not available in the first place);
+undef on failure (and reports an error).
+
 =cut
 
 sub delete
 {
     my ($self, $data) = @_;
+
+    # reports an error
+    $self->_sane_data('delete', $data) or return;
 
     $self->fetch();
 
@@ -237,10 +291,16 @@ sub delete
             # delete tag from cache
             delete $self->{cache}->{$data};
             $self->debug("deleted $data from tagstore");
+            if (! grep {$_ eq $pid} values %{$self->{cache}}) {
+                push(@{$self->{empty}}, $pid);
+            }
         } else {
             $self->error("Failed to delete $data from tagstore (project child id $pid)");
+            return;
         }
     }
+
+    return 1;
 }
 
 
