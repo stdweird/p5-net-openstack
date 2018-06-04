@@ -46,7 +46,7 @@ Readonly our $API_DATA => {
     
     add_tag => {
         method => 'PUT',
-        endpoint => '/project/{project_id}/tag/{tag}',
+        endpoint => '/projects/{project_id}/tag/{tag}',
         templates => ['project_id','tag'],
         
         
@@ -68,7 +68,7 @@ Readonly our $API_DATA => {
     
     delete_tag => {
         method => 'DELETE',
-        endpoint => '/project/{project_id}/tag/{tag}',
+        endpoint => '/projects/{project_id}/tag/{tag}',
         templates => ['project_id','tag'],
         
         
@@ -126,7 +126,7 @@ Readonly our $API_DATA => {
     
     tag => {
         method => 'GET',
-        endpoint => '/project/{project_id}/tag/{tag}',
+        endpoint => '/projects/{project_id}/tag/{tag}',
         templates => ['project_id','tag'],
         
         
@@ -137,7 +137,7 @@ Readonly our $API_DATA => {
     
     tags => {
         method => 'GET',
-        endpoint => '/project/{project_id}/tags',
+        endpoint => '/projects/{project_id}/tags',
         templates => ['project_id'],
         
         
