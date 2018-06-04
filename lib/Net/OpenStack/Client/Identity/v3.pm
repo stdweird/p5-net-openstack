@@ -391,7 +391,13 @@ sub create
             # POST to create
             my $new = $self->api_identity_get_item($operation, $name, $items) or return;
             my $resp = $self->api_identity_rest('POST', $operation, data => $new);
-            push(@{$res->{create}}, [$name, $resp->result("/$operation")]);
+            if ($resp) {
+                push(@{$res->{create}}, [$name, $resp->result("/$operation")]);
+                $self->debug("sync: created $operation $name");
+            } else {
+                $self->error("sync: failed to create $operation $name: $resp->{error}");
+                return;
+            }
         }
     } else {
         $self->debug("No ${operation}s to create");
@@ -431,7 +437,13 @@ sub update
             if (scalar keys %$update) {
                 push(@toupdate, $name);
                 my $resp = $self->api_identity_rest('PATCH', $operation, what => $found->{$name}->{id}, data => $update);
-                push(@{$res->{update}}, [$name, $resp->result("/$operation")]);
+                if ($resp) {
+                    push(@{$res->{update}}, [$name, $resp->result("/$operation")]);
+                    $self->debug("sync: updated $operation $name");
+                } else {
+                    $self->error("sync: failed to update $operation $name: $resp->{error}");
+                    return;
+                }
             }
         }
         $self->info(@toupdate ? "Updated existing ${operation}s: @toupdate" : "No existing ${operation}s updated");
@@ -483,7 +495,16 @@ sub remove
                                      "$operation $name (id ".$found->{$name}->{id}.")");
                     }
                 }
-                push(@{$res->{delete}}, [$name, $resp->result("/$operation")]) if defined($resp);
+
+                if ($resp) {
+                    push(@{$res->{delete}}, [$name, $resp->result("/$operation")]) if defined($resp);
+                    $self->debug("sync: ${dowhat}ed $operation $name");
+                } elsif (defined($resp)) {
+                    # 'Not disabling already disabled' is not an error
+                    $self->error("sync: failed to ${dowhat}e $operation $name: $resp->{error}");
+                    return;
+                }
+
             }
         }
     } else {

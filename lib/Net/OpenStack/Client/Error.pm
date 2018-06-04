@@ -190,10 +190,10 @@ sub _stringify
 
     if ($self->is_error()) {
         my @fields;
-        foreach my $attr (qw(name code message)) {
+        foreach my $attr (qw(method url name code message)) {
             push(@fields, $self->{$attr}) if exists ($self->{$attr});
         }
-        return "Error ".join('/', @fields);
+        return "Error ".join(' / ', @fields);
     } else {
         return  "No error";
     };

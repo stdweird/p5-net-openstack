@@ -52,16 +52,24 @@ sub _call
     my $code = $rc->responseCode();
     my $content = $rc->responseContent();
     my $rheaders = {map {$_ => $rc->responseHeader($_)} $rc->responseHeaders};
+    my $success = $code == 200 || $code == 201;
 
     my $response;
-
-    if ($code == 200 || $code == 201) {
-        my $type = $rheaders->{'Content-Type'} || 'RESPONSE_WO_CONTENT_TYPE_HEADER';
-        if ($type =~ qr{^application/json}i) {
+    my $type = $rheaders->{'Content-Type'} || 'RESPONSE_WO_CONTENT_TYPE_HEADER';
+    if ($type =~ qr{^application/json}i) {
+        local $@;
+        eval {
             $response = $json->decode($content);
-        } else {
-            $response = $content;
+        };
+        if ($@) {
+            my $report = $success ? 'error' : 'verbose';
+            $self->$report("REST $method failure to decode JSON content $content: $@");
         }
+    } else {
+        $response = $content;
+    }
+
+    if ($success) {
         $self->debug("Successful REST $method url $url type $type");
         if ($self->{debugapi}) {
             # might contain sensitive data, eg security token
@@ -70,15 +78,26 @@ sub _call
             $self->debug("REST $method full response content $content");
         }
     } else {
-        $err = "$method failed (url $url code $code)";
+        my $errmsg = "$method failed (url $url code $code)";
+        if (ref($response) eq 'HASH' &&
+            $response->{error}) {
+            $err = $response->{error};
+            $err->{url} = $url;
+            $err->{method} = $method;
+            $err->{code} = $code if !exists($err->{code});
+        } else {
+            $err = $errmsg;
+        }
+
         $content = '<undef>' if ! defined($content);
-        $self->error("REST $err: $content");
+        $errmsg = "$errmsg: $content";
+        $self->error("REST $errmsg");
     }
 
     return $response, $rheaders, $err;
 }
 
-# Handle pagination: https://developer.openstack.org/api-guide/compute/paginated_collections.html
+ # Handle pagination: https://developer.openstack.org/api-guide/compute/paginated_collections.html
 # For any decoded reply, walk the tree
 #    look for <key>+<key>_links combos
 #    <key> should be a list (a collection)
@@ -221,7 +240,7 @@ sub rest
 
     my ($response, $rheaders, $err) = $self->_call($method, @args);
     # The err here could be a failure in the paged GET repsonse
-    ($response, $err) = $self->_page($method, $response, $headers) if ($response && ref($response) eq 'HASH');
+    ($response, $err) = $self->_page($method, $response, $headers) if (!$err && $response && ref($response) eq 'HASH');
 
     my %ropts = (
         data => $response,

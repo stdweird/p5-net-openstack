@@ -122,14 +122,14 @@ ok(method_history_ok(
         'GET http://controller:35357/v3/projects[?]name=tagprojectid ',
         'GET http://controller:35357/v3/projects[?]parent_id=2 ',
         'GET http://controller:35357/v3/projects[?]parent_id=2 ',
-        'PUT http://controller:35357/v3/project/5/tag/atag \{\} ',
+        'PUT http://controller:35357/v3/projects/5/tag/atag \{\} ',
         'POST http://controller:35357/v3/projects .*"name":"tagprojectid_6","parent_id":"2".* ',
-        'PUT http://controller:35357/v3/project/9/tag/atag2 \{\} ',
-        'DELETE http://controller:35357/v3/project/5/tag/atag ',
+        'PUT http://controller:35357/v3/projects/9/tag/atag2 \{\} ',
+        'DELETE http://controller:35357/v3/projects/5/tag/atag ',
         'GET http://controller:35357/v3/projects[?]name=tagprojectempty ',
         'GET http://controller:35357/v3/projects[?]parent_id=11111 ',
-        'DELETE http://controller:35357/v3/project/11112/tag/1 ',
-        'PUT http://controller:35357/v3/project/11113/tag/atagempty \{\} ',
+        'DELETE http://controller:35357/v3/projects/11112/tag/1 ',
+        'PUT http://controller:35357/v3/projects/11113/tag/atagempty \{\} ',
        ]), "tagstore history ok");
 
 

@@ -97,7 +97,7 @@ $e = mkerror(code => 123, name => 'someerror');
 ok($e, "Is an error (but is an instance) (overload)");
 ok($e == 123, "error code=123 is code 123 (overload)");
 ok($e == 'someerror', "error code=123 is name someerror (overload)");
-is("$e", "Error someerror/123", "error code stringifcation (overload)");
+is("$e", "Error someerror / 123", "error code stringifcation (overload)");
 
 =head2 reverse error
 
