@@ -163,6 +163,67 @@ sub _name_attribute
     return $operation eq 'region' ? 'id' : 'name';
 }
 
+=item tagstore_init
+
+Function to initialise tagstore or return cached version based on tagstore project name.
+
+=cut
+
+sub tagstore_init
+{
+    my ($client, $tagstore_proj) = @_;
+
+    if (!$_tagstores->{$tagstore_proj}) {
+        my $tgst = Net::OpenStack::Client::Identity::Tagstore->new(
+            $client,
+            $tagstore_proj,
+            );
+
+        if ($tgst) {
+            $_tagstores->{$tagstore_proj} = $tgst;
+        } else {
+            $client->error("sync: failed to create new tagstore for project $tagstore_proj");
+            return;
+        }
+    }
+
+    return $_tagstores->{$tagstore_proj};
+}
+
+=item tagstore_postprocess
+
+Function to postprocess sync operations when a tagstore is used.
+
+=cut
+
+sub tagstore_postprocess
+{
+    my ($tagstore, $phase, $operation, $name, $result) = @_;
+
+    my $msg = "sync postprocess $operation $name stopped after failure to $phase";
+    if (exists($result->{id})) {
+        my $id = $result->{id};
+        my $ok = 1;
+
+        if ($phase eq 'create' || $phase eq 'delete') {
+            my $method = $phase eq 'create' ? 'add' : $phase;
+            $ok = $tagstore->$method($id);
+        } else {
+            $tagstore->debug("sync: nothing to do for tagstore postprocessing during $phase for $name id $id");
+        }
+
+        if ($ok) {
+            return 1;
+        } else {
+            $tagstore->error("$msg tag $id to tagstore. See previous error where to add the tag to continue");
+            return;
+        }
+    } else {
+        $tagstore->error("$msg no id in response");
+        return;
+    }
+}
+
 =pod
 
 =back
@@ -223,28 +284,13 @@ sub sync
     }
 
     my $tagstore;
-    if ($opts{tagstore}) {
-        my $tagstore_proj = $opts{tagstore};
-        if (!$_tagstores->{$tagstore_proj}) {
-            my $tgst = Net::OpenStack::Client::Identity::Tagstore->new(
-                $self,
-                $tagstore_proj,
-                );
-            if ($tgst) {
-                $_tagstores->{$tagstore_proj} = $tgst;
-            } else {
-                $self->error("sync: failed to create new tagstore for project $tagstore_proj");
-                return;
-            }
-        }
-        $tagstore = $_tagstores->{$tagstore_proj};
-    }
+    $tagstore = tagstore_init($self, $opts{tagstore}) if $opts{tagstore};
 
     my $filter;
     if ($opts{filter}) {
         $filter = $opts{filter};
         if (ref($filter) ne 'CODE') {
-            $self->error("Filter is not CODE");
+            $self->error("sync filter is not CODE");
             return;
         }
     } elsif ($tagstore) {
@@ -289,37 +335,17 @@ sub sync
         delete => [],
     };
 
-    my $created = $self->api_identity_create($operation, \@tocreate, $items, $nameattr, $res) or return;
-    # add to tagstore
-    if ($tagstore) {
-        foreach my $res (@{$res->{create}}) {
-            my $id = $res->[1]->{id};
-            if (!$tagstore->add($id)) {
-                $id = '<undef>' if ! defined $id;
-                $self->error("sync $operation $res->[0] stopped after failure to add tag $id to tagstore");
-                return $res;
-            };
-        }
-    }
+    my $postprocess;
+    $postprocess = sub { return tagstore_postprocess($tagstore, @_) } if ($tagstore);
+
+    my $created = $self->api_identity_create($operation, \@tocreate, $items, $nameattr, $res, $postprocess) or return;
 
     my @checkupdate = sort @{$wanted * $existing};
-    $self->api_identity_update($operation, \@checkupdate, $found, $items, $res) or return;
+    $self->api_identity_update($operation, \@checkupdate, $found, $items, $res, $postprocess) or return;
     # no tagstore operations?
 
     my @toremove = sort @{$existing - $wanted};
-    $self->api_identity_remove($operation, \@toremove, $found, \%opts, $res) or return;
-
-    # remove from tagstore
-    if ($tagstore) {
-        foreach my $res (@{$res->{delete}}) {
-            my $id = $res->[1]->{id};
-            if (!$tagstore->delete($id)) {
-                $id = '<undef>' if ! defined $id;
-                $self->error("sync $operation $res->[0] stopped after failure to delete tag $id from tagstore");
-                return $res;
-            };
-        }
-    }
+    $self->api_identity_delete($operation, \@toremove, $found, \%opts, $res, $postprocess) or return;
 
     return $res;
 }
@@ -371,17 +397,62 @@ sub get_item
     return $new;
 }
 
+=item _process_response
+
+Helper function for all 3 sync phases
+
+C<res> is updated in place.
+
+Returns 1 on success, undef otherwise (and reports an error).
+
+=cut
+
+sub _process_response
+{
+    my ($client, $phase, $resp, $res, $operation, $name, $postprocess) = @_;
+
+    if ($resp) {
+        my $result = $resp->result("/$operation");
+        push(@{$res->{$phase}}, [$name, $result]);
+        $client->debug("sync: ${phase}d $operation $name");
+        if ($postprocess) {
+            $postprocess->($phase, $operation, $name, $result) or return;
+        }
+        return 1;
+    } else {
+        $client->error("sync: failed to $phase $operation $name: $resp->{error}");
+        return;
+    }
+}
+
+
 =item create
 
 Create C<operation> items in arrayref C<tocreate> from configured C<items>
 (using name attriute C<nameattr>),
 with result hashref C<res>. C<res> is updated in place.
 
+C<postprocess> is a anonymous function called after a succesful REST call,
+and is passed following arguments:
+
+=over
+
+=item phase: one of C<create>, C<update> or C<delete>, depending on what pahse of the sync
+the REST call is made.
+
+=item operation: type of operation
+
+=item name: name of the operation
+
+=item result: result of the REST call
+
+=back
+
 =cut
 
 sub create
 {
-    my ($self, $operation, $tocreate, $items, $nameattr, $res) = @_;
+    my ($self, $operation, $tocreate, $items, $nameattr, $res, $postprocess) = @_;
 
     my @tocreate = @$tocreate;
 
@@ -391,13 +462,7 @@ sub create
             # POST to create
             my $new = $self->api_identity_get_item($operation, $name, $items) or return;
             my $resp = $self->api_identity_rest('POST', $operation, data => $new);
-            if ($resp) {
-                push(@{$res->{create}}, [$name, $resp->result("/$operation")]);
-                $self->debug("sync: created $operation $name");
-            } else {
-                $self->error("sync: failed to create $operation $name: $resp->{error}");
-                return;
-            }
+            _process_response($self, 'create', $resp, $res, $operation, $name, $postprocess) or return;
         }
     } else {
         $self->debug("No ${operation}s to create");
@@ -416,7 +481,7 @@ C<res> is updated in place.
 
 sub update
 {
-    my ($self, $operation, $checkupdate, $found, $items, $res) = @_;
+    my ($self, $operation, $checkupdate, $found, $items, $res, $postprocess) = @_;
 
     my @checkupdate = @$checkupdate;
 
@@ -437,13 +502,7 @@ sub update
             if (scalar keys %$update) {
                 push(@toupdate, $name);
                 my $resp = $self->api_identity_rest('PATCH', $operation, what => $found->{$name}->{id}, data => $update);
-                if ($resp) {
-                    push(@{$res->{update}}, [$name, $resp->result("/$operation")]);
-                    $self->debug("sync: updated $operation $name");
-                } else {
-                    $self->error("sync: failed to update $operation $name: $resp->{error}");
-                    return;
-                }
+                _process_response($self, 'update', $resp, $res, $operation, $name, $postprocess) or return;
             }
         }
         $self->info(@toupdate ? "Updated existing ${operation}s: @toupdate" : "No existing ${operation}s updated");
@@ -454,9 +513,9 @@ sub update
     return 1;
 }
 
-=item remove
+=item delete
 
-Remove (or disable) C<operation> items in arrayref C<toremove> from C<found>
+Delete (or disable) C<operation> items in arrayref C<toremove> from C<found>
 existing items, with options C<opts> (for C<delete> and C<ignore>)
 and result hashref C<res>. C<res> is updated in place.
 
@@ -465,9 +524,9 @@ When C<delete> is true, items will be delete; when items will be disabled.
 
 =cut
 
-sub remove
+sub delete
 {
-    my ($self, $operation, $toremove, $found, $opts, $res) = @_;
+    my ($self, $operation, $toremove, $found, $opts, $res, $postprocess) = @_;
 
     my @toremove = @$toremove;
 
@@ -496,15 +555,9 @@ sub remove
                     }
                 }
 
-                if ($resp) {
-                    push(@{$res->{delete}}, [$name, $resp->result("/$operation")]) if defined($resp);
-                    $self->debug("sync: ${dowhat}ed $operation $name");
-                } elsif (defined($resp)) {
-                    # 'Not disabling already disabled' is not an error
-                    $self->error("sync: failed to ${dowhat}e $operation $name: $resp->{error}");
-                    return;
+                if (defined($resp)) {
+                    _process_response($self, 'delete', $resp, $res, $operation, $name, $postprocess) or return;
                 }
-
             }
         }
     } else {
