@@ -49,6 +49,25 @@ foreach my $i (qw(error warn info debug)) {
 }
 use strict 'refs';
 
+=item verbose
+
+Convenience method to access verbose method of log instance if it exists.
+When absent, this is an alias for debug.
+
+=cut
+
+sub verbose
+{
+    my ($self, @args) = @_;
+    if ($self->{log}) {
+        my $method = $self->{log}->can('verbose') ? 'verbose' : 'debug';
+        return $self->{log}->$method(@args);
+    } else {
+        return;
+    }
+}
+
+
 =pod
 
 =back

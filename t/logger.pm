@@ -15,7 +15,7 @@ sub new
 };
 
 no strict 'refs';
-foreach my $i (qw(error warn info debug)) {
+foreach my $i (qw(error warn info debug verbose)) {
     *{$i} = sub {
         my ($self, @args) = @_;
         diag "[".uc($i)."] ", map {ref($_) ? explain($_) : $_} @args;

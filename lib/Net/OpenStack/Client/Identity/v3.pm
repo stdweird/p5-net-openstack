@@ -147,9 +147,9 @@ sub get_id
             $self->error("More than one ID $msg: @ids");
         } elsif (@ids) {
             $id = $ids[0];
-            $self->debug("ID $id $msg");
+            $self->verbose("ID $id $msg");
         } else {
-            $self->debug("No ID $msg");
+            $self->verbose("No ID $msg");
         }
     };
 
@@ -184,12 +184,12 @@ sub tagstore_init
                              join(",", map {$_->{id}} @proj), ". Unsupported for now");
                 return;
             } elsif (scalar @proj == 1) {
-                $client->debug("Found one tagstore project $tagstore_proj id ", $proj[0]->{id});
+                $client->verbose("Found one tagstore project $tagstore_proj id ", $proj[0]->{id});
             } else {
                 $resp = $client->api_identity_add_project(name => $tagstore_proj,
                                                         description => "Main tagstore project $tagstore_proj");
                 if ($resp) {
-                    $client->debug("Created main tagstore project $tagstore_proj id ", $resp->result->{id});
+                    $client->verbose("Created main tagstore project $tagstore_proj id ", $resp->result->{id});
                 } else {
                     $client->error("Failed to add main tagstore project $tagstore_proj: $resp->{error}");
                     return;
@@ -236,7 +236,7 @@ sub tagstore_postprocess
             my $method = $phase eq 'create' ? 'add' : $phase;
             $ok = $tagstore->$method($id);
         } else {
-            $tagstore->debug("sync: nothing to do for tagstore postprocessing during $phase for $name id $id");
+            $tagstore->verbose("sync: nothing to do for tagstore postprocessing during $phase for $name id $id");
         }
 
         if ($ok) {
@@ -441,7 +441,7 @@ sub _process_response
     if ($resp) {
         my $result = $resp->result("/$operation");
         push(@{$res->{$phase}}, [$name, $result]);
-        $client->debug("sync: ${phase}d $operation $name");
+        $client->verbose("sync: ${phase}d $operation $name");
         if ($postprocess) {
             $postprocess->($phase, $operation, $name, $result) or return;
         }
@@ -492,7 +492,7 @@ sub create
             _process_response($self, 'create', $resp, $res, $operation, $name, $postprocess) or return;
         }
     } else {
-        $self->debug("No ${operation}s to create");
+        $self->verbose("No ${operation}s to create");
     }
 
     return 1;
@@ -534,7 +534,7 @@ sub update
         }
         $self->info(@toupdate ? "Updated existing ${operation}s: @toupdate" : "No existing ${operation}s updated");
     } else {
-        $self->debug("No existing ${operation}s to update");
+        $self->verbose("No existing ${operation}s to update");
     }
 
     return 1;
@@ -577,7 +577,7 @@ sub delete
                                                          what => $found->{$name}->{id},
                                                          data => {enabled => convert(0, 'boolean')});
                     } else {
-                        $self->debug("Not disabling already disabled ".
+                        $self->verbose("Not disabling already disabled ".
                                      "$operation $name (id ".$found->{$name}->{id}.")");
                     }
                 }
@@ -588,7 +588,7 @@ sub delete
             }
         }
     } else {
-        $self->debug("No existing ${operation}s to ${dowhat}e");
+        $self->verbose("No existing ${operation}s to ${dowhat}e");
     }
 
     return 1;

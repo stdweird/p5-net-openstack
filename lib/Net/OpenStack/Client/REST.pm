@@ -63,14 +63,15 @@ sub _call
         };
         if ($@) {
             my $report = $success ? 'error' : 'verbose';
-            $self->$report("REST $method failure to decode JSON content $content: $@");
+            $self->$report("REST $method with ".($success ? 'success' : 'error').
+                           " failure to decode JSON content $content: $@");
         }
     } else {
         $response = $content;
     }
 
     if ($success) {
-        $self->debug("Successful REST $method url $url type $type");
+        $self->verbose("Successful REST $method url $url type $type");
         if ($self->{debugapi}) {
             # might contain sensitive data, eg security token
             my $headers_txt = join(',', map {"$_=$rheaders->{$_}"} sort keys %$rheaders);

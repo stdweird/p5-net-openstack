@@ -57,7 +57,7 @@ sub _initialize
     $self->{project} = $project;
     $self->{id} = $self->{client}->api_identity_get_id('project', $project);
     if (defined($self->{id})) {
-        $self->debug("Tagstore for $project intialised (id $self->{id})");
+        $self->verbose("Tagstore for $project intialised (id $self->{id})");
     } else {
         $self->error("No tagstore project id found for project $project");
         return;
@@ -105,7 +105,7 @@ sub fetch
     if ($self->{cache}) {
         $self->debug("fetch: tagstore cache exists, not doing anything");
     } else {
-        $self->debug("fetching tagstore data cache");
+        $self->verbose("fetching tagstore data cache");
         # gather all projects with parent_id $self->{project}
         my $resp = $self->{client}->api_identity_projects(parent_id => $self->{id});
         if ($resp) {
@@ -224,7 +224,7 @@ sub add
     # look for projectid that has tagspace left
     my $pid = shift(@{$self->{empty}});
     if (defined($pid)) {
-        $self->debug("Using first empty tagstore project id $pid");
+        $self->verbose("Using first empty tagstore project id $pid");
     } else {
         my %count;
         foreach my $v (values %{$self->{cache}}) {
@@ -234,7 +234,7 @@ sub add
 
         if (@avail) {
             $pid = $avail[0];
-            $self->debug("using existing tagstore project $pid for $data");
+            $self->verbose("using existing tagstore project $pid for $data");
         } else {
             # make new subproject
             my $counter = $self->{counter};
@@ -256,7 +256,7 @@ sub add
     if ($resp) {
         # add tag to cache
         $self->{cache}->{$data} = $pid;
-        $self->debug("Added $data to tagstore");
+        $self->verbose("Added $data to tagstore");
     } else {
         $self->error("Failed to add $data to tagstore (project child id $pid)");
         return;
@@ -290,7 +290,7 @@ sub delete
         if ($resp) {
             # delete tag from cache
             delete $self->{cache}->{$data};
-            $self->debug("deleted $data from tagstore");
+            $self->verbose("deleted $data from tagstore");
             if (! grep {$_ eq $pid} values %{$self->{cache}}) {
                 push(@{$self->{empty}}, $pid);
             }
