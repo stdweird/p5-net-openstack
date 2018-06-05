@@ -174,6 +174,33 @@ sub tagstore_init
     my ($client, $tagstore_proj) = @_;
 
     if (!$_tagstores->{$tagstore_proj}) {
+
+        # Does the project exist?
+        my $resp = $client->api_identity_projects(name => $tagstore_proj);
+        if ($resp) {
+            my @proj = @{$resp->result};
+            if (scalar @proj > 1) {
+                $client->error("More than one tagstore project $tagstore_proj found: ids ",
+                             join(",", map {$_->{id}} @proj), ". Unsupported for now");
+                return;
+            } elsif (scalar @proj == 1) {
+                $client->debug("Found one tagstore project $tagstore_proj id ", $proj[0]->{id});
+            } else {
+                $resp = $client->api_identity_add_project(name => $tagstore_proj,
+                                                        description => "Main tagstore project $tagstore_proj");
+                if ($resp) {
+                    $client->debug("Created main tagstore project $tagstore_proj id ", $resp->result->{id});
+                } else {
+                    $client->error("Failed to add main tagstore project $tagstore_proj: $resp->{error}");
+                    return;
+                }
+            }
+        } else {
+            $client->error("Failed to list possible tagstore project $tagstore_proj: $resp->{error}");
+            return;
+        }
+
+        # Get instance
         my $tgst = Net::OpenStack::Client::Identity::Tagstore->new(
             $client,
             $tagstore_proj,
