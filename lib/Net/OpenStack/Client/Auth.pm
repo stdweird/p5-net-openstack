@@ -105,17 +105,22 @@ sub login
                 project_domain_name => &$os('project_domain_name'),
                 project_name => &$os('project_name'),
                 );
-            # token in result attr
-            $self->{token} = $resp->result;
-
-            # parse the catalog
-            $self->services_from_catalog($resp->{data}->{token}->{catalog});
+            if ($resp) {
+                # token in result attr
+                $self->{token} = $resp->result;
+                $self->verbose("login succesful, obtained a token");
+                # parse the catalog
+                $self->services_from_catalog($resp->{data}->{token}->{catalog});
+            } else {
+                $self->error("login: failed to get token $resp->{error}");
+                return;
+            }
         } else {
-            $self->error("Only identity v3 supported for now");
+            $self->error("login: only identity v3 supported for now");
             return;
         }
     } else {
-        $self->error("Only openrc supported for now");
+        $self->error("login: only openrc supported for now");
         return;
     }
 
@@ -145,11 +150,12 @@ sub services_from_catalog
                 last;
             }
         }
+        my $msg = "for service $type from catalog";
         if ($endpoint) {
             $self->{services}->{$type} = $endpoint;
-            $self->debug("Added endpoint $endpoint for service $type");
+            $self->verbose("Added endpoint $endpoint $msg");
         } else {
-            $self->error("No endpoint for service $type using preferred interfaces ".join(",", @pref_intfs));
+            $self->error("No endpoint $msg using preferred interfaces ".join(",", @pref_intfs));
         }
     }
 }
