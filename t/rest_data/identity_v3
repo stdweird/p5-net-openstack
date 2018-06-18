@@ -40,5 +40,5 @@ $cmds{mainprojid}{result}={projects => [{id => 2}]};
 
 $cmds{existingchildproj}{cmd}="GET http://controller:35357/v3/projects[?]parent_id=2";
 $cmds{existingchildproj}{result}={projects => [
-    {id => 10, name => "hoopla_4", tags => ['toremove']},
+    {id => 10, name => "hoopla_4", tags => ['ID_region_toremove']},
     ]};

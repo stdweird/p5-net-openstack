@@ -234,7 +234,7 @@ sub tagstore_postprocess
 
         if ($phase eq 'create' || $phase eq 'delete') {
             my $method = $phase eq 'create' ? 'add' : $phase;
-            $ok = $tagstore->$method($id);
+            $ok = $tagstore->$method("ID_${operation}_${id}");
         } else {
             $tagstore->verbose("sync: nothing to do for tagstore postprocessing during $phase for $name id $id");
         }
@@ -321,7 +321,7 @@ sub sync
             return;
         }
     } elsif ($tagstore) {
-        $filter = sub {return $tagstore->get($_[0]->{id})};
+        $filter = sub {return $tagstore->get("ID_${operation}_".$_[0]->{id})};
     } else {
         $filter = sub {return 1};
     };
