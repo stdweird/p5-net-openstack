@@ -42,7 +42,7 @@ sub AUTOLOAD
     }
 
     if ($fail) {
-        die "Unknown Net::OpenStack::Client::API method: $called failed $fail (from original $called_orig)";
+        die "Unknown Net::OpenStack::Client::API method: '$called' failed $fail (from original $called_orig)";
     } else {
         # Run the expected method.
         # AUTOLOAD with glob assignment and goto defines the autoloaded method

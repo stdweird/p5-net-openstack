@@ -21,7 +21,7 @@ use logger;
 
 use Net::OpenStack::Client::Identity::v3;
 is_deeply(\@Net::OpenStack::Client::Identity::v3::SUPPORTED_OPERATIONS,
-   [qw(region domain project user role group service endpoint)],
+   [qw(region domain project user group role rolemap service endpoint)],
    "ordered supported operations (order is meaningful, should not just change)");
 
 my $items = {
@@ -126,5 +126,63 @@ ok(method_history_ok(
        ]),
    "regions created in order");
 
+=head1 endpoint sync with tagstore
+
+=cut
+
+reset_method_history();
+$res = $cl->api_identity_sync('endpoint', {
+    "int_url1" => {interface => 'int', url => 'url1', region_id => 'regone'}, # add
+    "pub_url2" => {interface => 'pub', url => 'url2', region_id => 'regone'}, # update region_id
+    "priv_url3" => {interface => 'priv', url => 'url3', region_id => 'regtwo'}, # do nothing
+}, tagstore => 'hoopla');
+
+diag "endpoint result ", explain $res;
+is_deeply($res, {
+    create => [['int_url1', {id => 'pub1'}]],
+    update => [['pub_url2', {id => 'pub2'}]],
+    delete => [['pub_url4', {id => 'toremove'}]],
+}, "endpoint sync ok");
+
+dump_method_history;
+ok(method_history_ok(
+       [
+    'GET http://controller:35357/v3/endpoints/  ',
+    'POST http://controller:35357/v3/endpoints/ .*"enabled":true,"interface":"int","region_id":"regone","url":"url1".*',
+    'PUT http://controller:35357/v3/projects/10/tags/ID_endpoint_pub1 ',
+    'PATCH http://controller:35357/v3/endpoints/pub2 .*"region_id":"regone".*',
+    'PATCH http://controller:35357/v3/endpoints/toremove .*"enabled":false.*',
+       ], ['"name":']), "endpoints synced (no name set)");
+
+=head1 sync roles
+
+=cut
+
+
+reset_method_history();
+
+my $roles = {
+    project => {someproj => {user => {auser => [qw(garden gnome)]}}},
+    domain => {somedomain => {group => {agroup => [qw(smurfs)]}}},
+};
+
+$res = $cl->api_identity_sync_rolemap($roles, tagstore => 'hoopla');
+ok($res, "sync_rolemap ok");
+
+dump_method_history;
+ok(method_history_ok([
+    'GET .*/projects[?]name=someproj ',
+    'GET .*/users[?]name=auser ',
+    'GET .*/domains[?]name=somedomain ',
+    'GET .*/groups[?]name=agroup ',
+    'PUT .*/domains/dom123/groups/12345/roles/9904 \{\} ',
+    'PUT .*/projects/10/tags/ROLE_domains%2Fdom123%2Fgroups%2F12345%2Froles%2F9904 \{\} ',
+    'PUT .*/projects/3/users/12333/roles/9903 \{\} ',
+    'PUT .*/projects/10/tags/ROLE_projects%2F3%2Fusers%2F12333%2Froles%2F9903 \{\} ',
+    'DELETE .*/projects/3/users/12333/roles/9901 ',
+    'DELETE .*/projects/10/tags/ROLE_projects%2F3%2Fusers%2F12333%2Froles%2F9901 ',
+    ],
+    ['(PUT|DELETE).*gnome']), # already exists, nothing to update
+    "roles created/deleted");
 
 done_testing;

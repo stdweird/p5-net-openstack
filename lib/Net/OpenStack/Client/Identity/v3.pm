@@ -10,6 +10,8 @@ use Net::OpenStack::Client::API::Convert qw(convert);
 use Net::OpenStack::Client::Identity::Tagstore;
 use Net::OpenStack::Client::Request qw(mkrequest);
 
+use URI::Escape;
+
 Readonly my $IDREG => qr{[0-9a-z]{33}};
 
 # This list is ordered:
@@ -21,8 +23,9 @@ Readonly our @SUPPORTED_OPERATIONS => qw(
     domain
     project
     user
-    role
     group
+    role
+    rolemap
     service
     endpoint
 );
@@ -126,11 +129,21 @@ Return the ID of an C<operation>.
 If the name is an ID, return the ID without a lookup.
 If the operation is 'region', return the name.
 
+Options
+
+=over
+
+=item error: report an error when no id is found
+
+=item msg: use the value as (part of) the reported message
+
+=back
+
 =cut
 
 sub get_id
 {
-    my ($self, $operation, $name) = @_;
+    my ($self, $operation, $name, %opts) = @_;
 
     # region has no id (or no name, whatever you like)
     return $name if ($name =~ m/$IDREG/ || $operation eq 'region');
@@ -138,10 +151,12 @@ sub get_id
     # GET the list for name
     my $resp = $self->api_identity_rest('GET', $operation, result => "/${operation}s", params => {name => $name});
 
+    my $msg = "found for $operation with name $name";
+    $msg .= " $opts{msg}" if $opts{msg};
+
     my $id;
     if ($resp) {
         my @ids = (map {$_->{id}} @{$resp->result || []});
-        my $msg = "found for $operation with name $name";
         if (scalar @ids > 1) {
             # what? do not return anything
             $self->error("More than one ID $msg: @ids");
@@ -149,8 +164,11 @@ sub get_id
             $id = $ids[0];
             $self->verbose("ID $id $msg");
         } else {
-            $self->verbose("No ID $msg");
+            my $method = $opts{error} ? 'error' : 'verbose';
+            $self->$method("No ID $msg");
         }
+    } else {
+        $self->error("get_id invalid request $msg: $resp->{error}");
     };
 
     return $id;
@@ -161,6 +179,20 @@ sub _name_attribute
 {
     my ($operation) = @_;
     return $operation eq 'region' ? 'id' : 'name';
+}
+
+# Function to return the name based on the operation and data
+sub _make_name
+{
+    my ($operation, $data) = @_;
+    if ($operation eq 'endpoint') {
+        # for endpoint, we construct an internal unique name based on
+        # interface and url, seperated by a underscore
+        return "$data->{interface}_$data->{url}";
+    } else {
+        my $attr = _name_attribute($operation);
+        return $data->{$attr};
+    }
 }
 
 =item tagstore_init
@@ -278,6 +310,9 @@ compare it with all existing items:
 Returns a hasref with responses for the created items. The keys are
 C<create>, C<update> and C<delete> and the values an arrayref of responses.
 
+For C<endpoint> operations, as they have no name, use the C<<<interface>_<url>>>
+as the name for the C<items> hashref.
+
 Following options are supported:
 
 =over
@@ -329,10 +364,8 @@ sub sync
     # GET the list
     my $resp_list = $self->api_identity_rest('GET', $operation, result => "/${operation}s");
 
-    my $nameattr = _name_attribute($operation);
-
     my $found = {
-        map {$_->{$nameattr} => $_}
+        map {_make_name($operation, $_) => $_}
         grep {$filter->($_)}
         @{$resp_list->result || []}
     };
@@ -365,7 +398,7 @@ sub sync
     my $postprocess;
     $postprocess = sub { return tagstore_postprocess($tagstore, @_) } if ($tagstore);
 
-    my $created = $self->api_identity_create($operation, \@tocreate, $items, $nameattr, $res, $postprocess) or return;
+    my $created = $self->api_identity_create($operation, \@tocreate, $items, $res, $postprocess) or return;
 
     my @checkupdate = sort @{$wanted * $existing};
     $self->api_identity_update($operation, \@checkupdate, $found, $items, $res, $postprocess) or return;
@@ -385,7 +418,7 @@ Modification to the data
 
 =over
 
-=item name is inserted
+=item name is inserted (unless this is an endpoint)
 
 =item any named ids (either from (other) operation(s) or parenting) are resolved
 to their actual id.
@@ -399,9 +432,12 @@ sub get_item
     my ($self, $operation, $name, $items) = @_;
 
     my $new = $items->{$name};
-    my $nameattr = _name_attribute($operation);
-    # add name
-    $new->{$nameattr} = $name;
+
+    if ($operation ne 'endpoint') {
+        my $nameattr = _name_attribute($operation);
+        # add name
+        $new->{$nameattr} = $name;
+    }
 
     # resolve ids
     my %toresolve = (map {$_."_id" => $_} @SUPPORTED_OPERATIONS);
@@ -412,7 +448,7 @@ sub get_item
         # no autovivification
         next if ! exists($new->{$attr});
 
-        my $resolved = $self->api_identity_get_id($toresolve{$attr}, $new->{$attr});
+        my $resolved = $self->api_identity_get_id($toresolve{$attr}, $new->{$attr}, error => 1);
         if (defined($resolved)) {
             $new->{$attr} = $resolved;
         } else {
@@ -479,7 +515,7 @@ the REST call is made.
 
 sub create
 {
-    my ($self, $operation, $tocreate, $items, $nameattr, $res, $postprocess) = @_;
+    my ($self, $operation, $tocreate, $items, $res, $postprocess) = @_;
 
     my @tocreate = @$tocreate;
 
@@ -594,6 +630,126 @@ sub delete
     return 1;
 }
 
+
+=item sync_rolemap
+
+Add missing roles for project/domain and group/user,
+and delete any when tagstore is used.
+
+The roles are defined with a nested hashref, like
+the url is structured (with an arrayref of roles as value).
+E.g.
+    $roles = {
+        domain => {
+            dom1 => {
+                user => {
+                    user1 => [role1 role2],
+                    ...
+                },
+                group => {
+                    ...
+                    },
+                },
+            ...
+        project => {
+           ...
+           },
+        }
+
+Options
+
+=over
+
+=item tagstore: use project tagstore to track synced roles.
+
+=back
+
+=cut
+
+
+sub sync_rolemap
+{
+    my ($self, $roles, %opts) = @_;
+
+    # Get all roles from tagstore (if defined)
+    # The role tag is ROLE_url
+    # url is
+    #    projects/{project_id} OR domains/{domain_id} +
+    #      groups/{group_id} OR users/{user_id} +
+    #      roles/{role_id}
+
+    # Will use url as identifier
+
+    my ($tagstore, @found);
+
+    if ($opts{tagstore}) {
+        $tagstore = tagstore_init($self, $opts{tagstore}) if $opts{tagstore};
+        # Strip ROLE_, decode/unescape the url
+        @found = map {my $url = $_; $url =~ s/^ROLE_//; uri_unescape($url)} grep {m/^ROLE_/} sort keys %{$tagstore->fetch};
+    };
+    my $existing = Set::Scalar->new(@found);
+
+    # create hash: key is url, value is 1
+    my $items;
+    foreach my $base (qw(project domain)) {
+        foreach my $bval (sort keys %{$roles->{$base} || {}}) {
+            my $bid = $self->api_identity_get_id($base, $bval, error => 1, msg => 'for role sync')
+                or return;
+            foreach my $who (qw(user group)) {
+                foreach my $wval (sort keys %{$roles->{$base}->{$bval}->{$who} || {}}) {
+                    my $wid = $self->api_identity_get_id($who, $wval, error => 1, msg => 'for role sync')
+                        or return;
+                    foreach my $role (@{$roles->{$base}->{$bval}->{$who}->{$wval}}) {
+                        my $rid = $self->api_identity_get_id('role', $role, error => 1, msg => 'for role sync')
+                            or return;
+                        $items->{"${base}s/$bid/${who}s/$wid/roles/$rid"} = 1;
+                    }
+                }
+            };
+        };
+    };
+
+    my $wanted = Set::Scalar->new(keys %$items);
+
+    my $rest = sub {
+        my ($urls, $method, $tagmethod) = @_;
+
+        if (@$urls) {
+            $self->verbose("roles sync: going to $tagmethod @$urls");
+        } else {
+            $self->verbose("roles sync: nothing to $tagmethod");
+            return 1;
+        };
+
+        foreach my $url (@$urls) {
+            my $resp = $self->rest(mkrequest($url, $method, version => 'v3', service => 'identity'));
+            if ($resp) {
+                if ($tagstore) {
+                    my $tag = "ROLE_" . uri_escape($url);
+                    if (!$tagstore->$tagmethod($tag)) {
+                        $tagstore->error("Failed to $tagmethod tag $tag to tagstore. ".
+                                         "See previous error where to add the tag to continue");
+                        return;
+                    }
+                }
+            } else {
+                $self->error("Failed to sync role $method $url");
+                return;
+            }
+        }
+        return 1
+    };
+
+    # Add new ones
+    my @tocreate = sort @{$wanted - $existing};
+    $rest->(\@tocreate, 'PUT', 'add') or return;
+
+    # Delete unknown
+    my @toremove = sort @{$existing - $wanted};
+    $rest->(\@toremove, 'DELETE', 'delete') or return;
+
+    return 1;
+}
 
 =pod
 

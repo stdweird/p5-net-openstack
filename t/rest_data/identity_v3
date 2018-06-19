@@ -35,10 +35,55 @@ $cmds{region2b}{result}={region => {id => 'a2nd'}};
 $cmds{region_delete}{cmd}="PATCH http://controller:35357/v3/regions/toremove";
 $cmds{region_delete}{result}={region => {id => 'toremove'}};
 
+
+$cmds{endpoints}{cmd}="GET http://controller:35357/v3/endpoints/";
+$cmds{endpoints}{result}={endpoints => [
+    {id => 'toremove', url => 'url4', interface => 'pub', enabled => 1},
+    {id => 'pub2', interface => 'pub', url => 'url2', region_id => 'regtwo', enabled => 1},
+    {id => 'priv3', interface => 'priv', url => 'url3', region_id => 'regtwo', enabled => 1},
+    {id => 'toignore', enabled => 1, url => 'url5', interface => 'pub'}, # no tag
+    ]};
+$cmds{endpoint1}{cmd}="POST http://controller:35357/v3/endpoints/ .*int.*url1.*";
+$cmds{endpoint1}{result}={endpoint => {id => 'pub1'}};
+$cmds{endpoint2}{cmd}='PATCH http://controller:35357/v3/endpoints/pub2 .*"region_id":"regone".*';
+$cmds{endpoint2}{result}={endpoint => {id => 'pub2'}};
+$cmds{endpoint4}{cmd}='PATCH http://controller:35357/v3/endpoints/toremove .*"enabled":false.*';
+$cmds{endpoint4}{result}={endpoint => {id => 'toremove'}};
+
 $cmds{mainprojid}{cmd}="GET http://controller:35357/v3/projects[?]name=hoopla";
 $cmds{mainprojid}{result}={projects => [{id => 2}]};
 
+$cmds{someprojid}{cmd}="GET http://controller:35357/v3/projects[?]name=someproj";
+$cmds{someprojid}{result}={projects => [{id => 3}]};
+
+$cmds{agroup}{cmd}="GET http://controller:35357/v3/groups[?]name=agroup";
+$cmds{agroup}{result}={groups => [{id => 12345}]};
+
+$cmds{auser}{cmd}="GET http://controller:35357/v3/users[?]name=auser";
+$cmds{auser}{result}={users => [{id => 12333}]};
+
+$cmds{rsuperman}{cmd}="GET http://controller:35357/v3/roles[?]name=superman";
+$cmds{rsuperman}{result}={roles => [{id => 9901}]};
+
+$cmds{rgnome}{cmd}="GET http://controller:35357/v3/roles[?]name=gnome";
+$cmds{rgnome}{result}={roles => [{id => 9902}]};
+
+$cmds{rgarden}{cmd}="GET http://controller:35357/v3/roles[?]name=garden";
+$cmds{rgarden}{result}={roles => [{id => 9903}]};
+
+$cmds{rsmurfs}{cmd}="GET http://controller:35357/v3/roles[?]name=smurfs";
+$cmds{rsmurfs}{result}={roles => [{id => 9904}]};
+
+use URI::Escape;
+
 $cmds{existingchildproj}{cmd}="GET http://controller:35357/v3/projects[?]parent_id=2";
 $cmds{existingchildproj}{result}={projects => [
-    {id => 10, name => "hoopla_4", tags => ['ID_region_toremove']},
+    {id => 10, name => "hoopla_4", tags => [
+        'ID_region_toremove',
+        'ID_endpoint_toremove',
+        'ID_endpoint_pub2',
+        'ID_endpoint_priv3',
+        'ROLE_'.uri_escape('projects/3/users/12333/roles/9901'),
+        'ROLE_'.uri_escape('projects/3/users/12333/roles/9902'),
+        ]},
     ]};
