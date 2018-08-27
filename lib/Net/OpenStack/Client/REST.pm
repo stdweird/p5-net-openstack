@@ -9,6 +9,17 @@ use REST::Client;
 use LWP::UserAgent;
 use JSON::XS;
 
+use Readonly;
+
+# Map with HTTP return codes indicating success
+#   if method is missing (only) 200 is conisdered success
+#   if method is present, 200 is not considered success by default
+Readonly my %SUCCESS => {
+    POST => [201],
+    PUT => [200, 201, 204],
+    DELETE => [204, 201], # yes, 201 when deleting a token
+    };
+
 
 # JSON::XS instance
 # sort the keys, to create reproducable results
@@ -52,7 +63,7 @@ sub _call
     my $code = $rc->responseCode();
     my $content = $rc->responseContent();
     my $rheaders = {map {$_ => $rc->responseHeader($_)} $rc->responseHeaders};
-    my $success = $code == 200 || $code == 201;
+    my $success = grep {$code == $_} @{$SUCCESS{$method} || [200]};
 
     my $response;
     my $type = $rheaders->{'Content-Type'} || 'RESPONSE_WO_CONTENT_TYPE_HEADER';
