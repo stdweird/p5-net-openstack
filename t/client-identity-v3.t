@@ -176,11 +176,11 @@ ok(method_history_ok([
     'GET .*/domains[?]name=somedomain ',
     'GET .*/groups[?]name=agroup ',
     'PUT .*/domains/dom123/groups/12345/roles/9904 \{\} ',
-    'PUT .*/projects/10/tags/ROLE_domains%2Fdom123%2Fgroups%2F12345%2Froles%2F9904 \{\} ',
+    'PUT .*/projects/10/tags/ROLE_ZG9tYWlucy9kb20xMjMvZ3JvdXBzLzEyMzQ1L3JvbGVzLzk5MDQ \{\} ',
     'PUT .*/projects/3/users/12333/roles/9903 \{\} ',
-    'PUT .*/projects/10/tags/ROLE_projects%2F3%2Fusers%2F12333%2Froles%2F9903 \{\} ',
+    'PUT .*/projects/10/tags/ROLE_cHJvamVjdHMvMy91c2Vycy8xMjMzMy9yb2xlcy85OTAz \{\} ',
     'DELETE .*/projects/3/users/12333/roles/9901 ',
-    'DELETE .*/projects/10/tags/ROLE_projects%2F3%2Fusers%2F12333%2Froles%2F9901 ',
+    'DELETE .*/projects/10/tags/ROLE_cHJvamVjdHMvMy91c2Vycy8xMjMzMy9yb2xlcy85OTAx ',
     ],
     ['(PUT|DELETE).*gnome']), # already exists, nothing to update
     "roles created/deleted");

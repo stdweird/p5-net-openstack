@@ -10,7 +10,7 @@ use Net::OpenStack::Client::API::Convert qw(convert);
 use Net::OpenStack::Client::Identity::Tagstore;
 use Net::OpenStack::Client::Request qw(mkrequest);
 
-use URI::Escape;
+use MIME::Base64 qw(encode_base64url decode_base64url);
 
 Readonly my $IDREG => qr{[0-9a-z]{33}};
 
@@ -685,7 +685,7 @@ sub sync_rolemap
     if ($opts{tagstore}) {
         $tagstore = tagstore_init($self, $opts{tagstore}) if $opts{tagstore};
         # Strip ROLE_, decode/unescape the url
-        @found = map {my $url = $_; $url =~ s/^ROLE_//; uri_unescape($url)} grep {m/^ROLE_/} sort keys %{$tagstore->fetch};
+        @found = map {my $url = $_; $url =~ s/^ROLE_//; decode_base64url($url)} grep {m/^ROLE_/} sort keys %{$tagstore->fetch};
     };
     my $existing = Set::Scalar->new(@found);
 
@@ -725,7 +725,7 @@ sub sync_rolemap
             my $resp = $self->rest(mkrequest($url, $method, version => 'v3', service => 'identity'));
             if ($resp) {
                 if ($tagstore) {
-                    my $tag = "ROLE_" . uri_escape($url);
+                    my $tag = "ROLE_" . encode_base64url($url);
                     if (!$tagstore->$tagmethod($tag)) {
                         $tagstore->error("Failed to $tagmethod tag $tag to tagstore. ".
                                          "See previous error where to add the tag to continue");
