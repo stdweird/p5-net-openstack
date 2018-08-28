@@ -60,8 +60,9 @@ sub get_openrc
     } elsif (exists($OPENRC_DEFAULT{$full_var})) {
         return $OPENRC_DEFAULT{$full_var};
     } else {
-        my $method = (grep {$_ eq $var} @$OPENRC_REQUIRED) ? 'error' : 'debug';
-        $self->$method("openrc required variable $var ($full_var) not found");
+        my $req = (grep {$_ eq $var} @$OPENRC_REQUIRED) ? 1 : 0;
+        my $method = $req  ? 'error' : 'debug';
+        $self->$method("openrc ".($req ? 'required ' : '')."variable $var ($full_var) not found");
     }
 
     return;
@@ -97,14 +98,16 @@ sub login
         $self->{versions}->{identity} = $version;
         if ($self->{versions}->{identity} == 3) {
             $self->{services}->{identity} = &$os('auth_url');
-            my $resp = $self->api_identity_tokens(
+            my $opts = {
                 methods => ['password'],
                 user_name => &$os('username'),
-                user_domain_name => &$os('project_domain_name'),
                 password => &$os('password'),
+                user_domain_name => &$os('user_domain_name') || &$os('project_domain_name'),
                 project_domain_name => &$os('project_domain_name'),
                 project_name => &$os('project_name'),
-                );
+            };
+
+            my $resp = $self->api_identity_tokens(map {$_ => $opts->{$_}} grep {defined($opts->{$_})} keys %$opts);
             if ($resp) {
                 # token in result attr
                 $self->{token} = $resp->result;
